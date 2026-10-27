@@ -131,7 +131,8 @@ public class RooftopLensPlugin extends Plugin
     @Subscribe
     public void onClientTick(ClientTick event)
     {
-        if (course == null)
+        // Unfocused, the client reports a clamped pitch target (433 read as 383); obstacle clicks still check the view.
+        if (course == null || !client.getCanvas().isFocusOwner())
         {
             return;
         }
