@@ -72,9 +72,11 @@ final class ObstacleOverlay extends Overlay
             Rectangle bounds = clickbox.getBounds();
             badge(g, step + 1, bounds.getCenterX(), bounds.getMinY() - 10, color, isNext);
             Point2D.Double spot = view == null ? null : view.boxSpot(step);
-            if (spot != null)
+            double spotX = spot == null ? 0 : bounds.x + spot.x * bounds.width;
+            double spotY = spot == null ? 0 : bounds.y + spot.y * bounds.height;
+            if (spot != null && clickbox.contains(spotX, spotY))
             {
-                drawSpot(g, bounds.x + spot.x * bounds.width, bounds.y + spot.y * bounds.height, color, isNext);
+                drawSpot(g, spotX, spotY, color, isNext);
             }
         }
         return null;

@@ -58,7 +58,8 @@ final class LensPanel extends Overlay
         boolean lapRunning = recorder.inProgress();
         CameraPose goal = lapRunning ? recorder.startView() : book.suggestion(camera);
         boolean onGoal = lapRunning || camera.holds(goal);
-        boolean isBest = goal.viewKey().equals(book.bestKey());
+        String bestKey = book.bestKey(camera);
+        boolean isBest = goal.viewKey().equals(bestKey);
 
         Font bold = FontManager.getRunescapeBoldFont();
         Font small = FontManager.getRunescapeSmallFont();
@@ -76,7 +77,6 @@ final class LensPanel extends Overlay
         text(g, small, here == null ? "This view: not learned"
             : "This view: " + here.laps + (here.laps == 1 ? " lap" : " laps") + " · " + Math.round(here.routePixels()) + " px",
             TEXT_X, 63, DIM);
-        String bestKey = book.bestKey();
         if (bestKey != null)
         {
             text(g, small, "Best: " + Math.round(book.views.get(bestKey).routePixels()) + " px", TEXT_X, 76, DIM);

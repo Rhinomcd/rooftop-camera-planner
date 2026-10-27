@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
@@ -120,7 +121,7 @@ public class RooftopLensPlugin extends Plugin
     @Subscribe
     public void onGameTick(GameTick event)
     {
-        if (course != null && obstacles.isEmpty())
+        if (course != null && obstacles.isEmpty() && client.getGameState() == GameState.LOGGED_IN)
         {
             course = null;
         }
@@ -230,6 +231,7 @@ public class RooftopLensPlugin extends Plugin
         }
         if (owner != course)
         {
+            obstacles.clear();
             course = owner;
             recorder = new LapRecorder(owner.stepCount());
             book = loadBook(owner);
@@ -241,12 +243,15 @@ public class RooftopLensPlugin extends Plugin
     private LapRecorder.Click clickPoint(int objectId)
     {
         Point mouse = client.getMouseCanvasPosition();
-        Shape clickbox = obstacles.keySet().stream()
+        List<Shape> clickboxes = obstacles.keySet().stream()
             .filter(object -> object.getId() == objectId)
             .map(TileObject::getClickbox)
             .filter(shape -> shape != null)
+            .collect(Collectors.toList());
+        Shape clickbox = clickboxes.stream()
+            .filter(shape -> mouse != null && shape.contains(mouse.getX(), mouse.getY()))
             .findFirst()
-            .orElse(null);
+            .orElse(clickboxes.isEmpty() ? null : clickboxes.get(0));
         Rectangle bounds = clickbox == null ? null : clickbox.getBounds();
         double x;
         double y;

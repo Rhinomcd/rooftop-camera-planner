@@ -2,19 +2,22 @@ package com.rhinomcd.rooftoplens;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Every camera view the player has completed a clean lap in, for one course. A view's score is the cyclic
- * pixel distance through its learned click spots: the mouse travel one lap needs in that view.
+ * Every camera view the player has completed a clean lap in, for one course. A view's score is the median, over
+ * its recent laps, of the cyclic pixel distance through that lap's clicks: the mouse travel one lap needs.
+ * Views are only compared at the same pitch and zoom, because zooming out shrinks every distance.
  */
 final class ViewBook
 {
     private static final int CLICKS_KEPT = 8;
-    private static final int[] PROBE_YAWS = { 0, 512, 1024, 1536 };
+    private static final int[] QUARTER_TURNS = { 0, 512, 1024, 1536 };
+    private static final int[] REFINE_SPREADS = { 256, 128 };
 
     private final int steps;
     final Map<String, View> views = new LinkedHashMap<>();
@@ -27,6 +30,10 @@ final class ViewBook
     void record(LapRecorder.Lap lap, int canvasWidth, int canvasHeight)
     {
         View view = views.computeIfAbsent(lap.camera.viewKey(), key -> new View(steps));
+        if (view.canvasWidth != canvasWidth || view.canvasHeight != canvasHeight)
+        {
+            view.clicks.forEach(List::clear);
+        }
         view.laps++;
         view.canvasWidth = canvasWidth;
         view.canvasHeight = canvasHeight;
@@ -69,36 +76,55 @@ final class ViewBook
         return views.get(camera.viewKey());
     }
 
-    String bestKey()
+    /** The shortest-route view at the camera's pitch and zoom, or null if none has a lap. */
+    String bestKey(CameraPose camera)
     {
+        String level = level(camera);
         return views.entrySet().stream()
+            .filter(entry -> level(CameraPose.fromViewKey(entry.getKey())).equals(level))
             .min(Comparator.comparingDouble(entry -> entry.getValue().routePixels()))
             .map(Map.Entry::getKey)
             .orElse(null);
     }
 
     /**
-     * The view to try next: an untried quarter turn at the pitch and zoom of the first learned view, nearest
-     * to the current yaw. Once every quarter has a lap, the best view.
+     * The view to try next, at the camera's pitch and zoom: an untried quarter turn nearest the current yaw, then
+     * untried yaws 45 and then 22.5 degrees either side of the best view, then the best view itself.
      */
     CameraPose suggestion(CameraPose current)
     {
-        CameraPose anchor = views.isEmpty() ? current : CameraPose.fromViewKey(views.keySet().iterator().next());
-        CameraPose nearest = null;
-        for (int yaw : PROBE_YAWS)
+        CameraPose untried = nearestUntried(current, QUARTER_TURNS);
+        for (int spread : REFINE_SPREADS)
         {
-            CameraPose probe = CameraPose.fromViewKey(new CameraPose(yaw, anchor.pitch, anchor.zoom).viewKey());
+            if (untried != null)
+            {
+                return untried;
+            }
+            int best = CameraPose.fromViewKey(bestKey(current)).yaw;
+            untried = nearestUntried(current, new int[] { best - spread, best + spread });
+        }
+        return untried != null ? untried : CameraPose.fromViewKey(bestKey(current));
+    }
+
+    private CameraPose nearestUntried(CameraPose current, int[] yaws)
+    {
+        CameraPose nearest = null;
+        for (int yaw : yaws)
+        {
+            CameraPose probe = CameraPose.fromViewKey(new CameraPose(yaw, current.pitch, current.zoom).viewKey());
             if (!views.containsKey(probe.viewKey())
-                && (nearest == null || Math.abs(current.yawDelta(yaw)) < Math.abs(current.yawDelta(nearest.yaw))))
+                && (nearest == null || Math.abs(current.yawDelta(probe.yaw)) < Math.abs(current.yawDelta(nearest.yaw))))
             {
                 nearest = probe;
             }
         }
-        if (nearest != null)
-        {
-            return nearest;
-        }
-        return CameraPose.fromViewKey(bestKey());
+        return nearest;
+    }
+
+    private static String level(CameraPose camera)
+    {
+        String key = camera.viewKey();
+        return key.substring(key.indexOf(':'));
     }
 
     static final class View
@@ -117,12 +143,6 @@ final class ViewBook
             boxClicks = emptySteps(steps);
         }
 
-        /** Median click per step, as canvas fractions. */
-        Point2D.Double spot(int step)
-        {
-            return median(clicks.get(step));
-        }
-
         /** Median click per step inside the obstacle's clickbox bounds, or null if none was recorded. */
         Point2D.Double boxSpot(int step)
         {
@@ -130,16 +150,25 @@ final class ViewBook
             return kept == null || kept.isEmpty() ? null : median(kept);
         }
 
+        /** Median over recent laps of one lap's cyclic click-to-click distance, in pixels. */
         double routePixels()
         {
-            double total = 0;
-            for (int step = 0; step < clicks.size(); step++)
+            int laps = clicks.stream().mapToInt(List::size).min().orElse(0);
+            double[] routes = new double[laps];
+            for (int lap = 0; lap < laps; lap++)
             {
-                Point2D.Double from = spot(step);
-                Point2D.Double to = spot((step + 1) % clicks.size());
-                total += Math.hypot((to.x - from.x) * canvasWidth, (to.y - from.y) * canvasHeight);
+                for (int step = 0; step < clicks.size(); step++)
+                {
+                    List<double[]> from = clicks.get(step);
+                    List<double[]> to = clicks.get((step + 1) % clicks.size());
+                    double[] a = from.get(from.size() - laps + lap);
+                    double[] b = to.get(to.size() - laps + lap);
+                    routes[lap] += Math.hypot((b[0] - a[0]) * canvasWidth, (b[1] - a[1]) * canvasHeight);
+                }
             }
-            return total;
+            Arrays.sort(routes);
+            int mid = laps / 2;
+            return laps == 0 ? Double.MAX_VALUE : laps % 2 == 1 ? routes[mid] : (routes[mid - 1] + routes[mid]) / 2;
         }
 
         private static Point2D.Double median(List<double[]> kept)
