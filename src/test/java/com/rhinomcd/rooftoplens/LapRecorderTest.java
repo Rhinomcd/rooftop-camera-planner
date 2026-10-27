@@ -61,4 +61,13 @@ public class LapRecorderTest
         assertEquals(LapRecorder.Outcome.COMPLETED, recorder.obstacleClicked(2, CLICK, new CameraPose(0, 300, 500)));
         assertEquals("0:304:512", recorder.lastLap().camera.viewKey());
     }
+
+    @Test
+    public void driftingIntoTheNextViewIsNotCounted()
+    {
+        LapRecorder recorder = new LapRecorder(2);
+        recorder.obstacleClicked(0, CLICK, new CameraPose(31, 384, 256));
+        recorder.cameraSampled(new CameraPose(55, 384, 256));
+        assertEquals(LapRecorder.Outcome.CAMERA_MOVED, recorder.obstacleClicked(1, CLICK, new CameraPose(31, 384, 256)));
+    }
 }

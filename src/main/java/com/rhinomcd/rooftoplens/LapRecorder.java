@@ -36,7 +36,7 @@ final class LapRecorder
             return Outcome.NONE;
         }
         clicks[step] = click;
-        cameraHeld &= camera.holds(start);
+        cameraHeld &= camera.viewKey().equals(start.viewKey());
         next++;
         if (next < steps)
         {
@@ -55,7 +55,7 @@ final class LapRecorder
     {
         if (next > 0)
         {
-            cameraHeld &= camera.holds(start);
+            cameraHeld &= camera.viewKey().equals(start.viewKey());
         }
     }
 

@@ -14,7 +14,9 @@ import java.util.Map;
 import javax.inject.Inject;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
+import net.runelite.api.GameObject;
 import net.runelite.api.Point;
+import net.runelite.api.Tile;
 import net.runelite.api.TileObject;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.DecorativeObjectDespawned;
@@ -28,6 +30,7 @@ import net.runelite.api.events.GroundObjectSpawned;
 import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.events.WallObjectDespawned;
 import net.runelite.api.events.WallObjectSpawned;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
@@ -45,6 +48,7 @@ public class RooftopLensPlugin extends Plugin
     private static final int NOTICE_TICKS = 10;
 
     @Inject private Client client;
+    @Inject private ClientThread clientThread;
     @Inject private ConfigManager configManager;
     @Inject private Gson gson;
     @Inject private OverlayManager overlayManager;
@@ -71,6 +75,7 @@ public class RooftopLensPlugin extends Plugin
     {
         overlayManager.add(obstacleOverlay);
         overlayManager.add(lensPanel);
+        clientThread.invoke(this::scanScene);
     }
 
     @Override
@@ -85,9 +90,19 @@ public class RooftopLensPlugin extends Plugin
     @Subscribe
     public void onGameStateChanged(GameStateChanged event)
     {
-        if (event.getGameState() == GameState.LOADING || event.getGameState() == GameState.LOGIN_SCREEN)
+        switch (event.getGameState())
         {
-            obstacles.clear();
+            case LOADING:
+                // Scenes reload mid-course; the lap survives and obstacles respawn.
+                obstacles.clear();
+                break;
+            case LOGIN_SCREEN:
+            case HOPPING:
+                obstacles.clear();
+                course = null;
+                break;
+            default:
+                break;
         }
     }
 
@@ -152,6 +167,42 @@ public class RooftopLensPlugin extends Plugin
     @Subscribe public void onGroundObjectSpawned(GroundObjectSpawned e) { track(e.getGroundObject()); }
     @Subscribe public void onGroundObjectDespawned(GroundObjectDespawned e) { obstacles.remove(e.getGroundObject()); }
 
+    private void scanScene()
+    {
+        if (client.getGameState() != GameState.LOGGED_IN)
+        {
+            return;
+        }
+        for (Tile[][] plane : client.getTopLevelWorldView().getScene().getTiles())
+        {
+            for (Tile[] row : plane)
+            {
+                for (Tile tile : row)
+                {
+                    if (tile == null)
+                    {
+                        continue;
+                    }
+                    for (GameObject object : tile.getGameObjects())
+                    {
+                        trackIfPresent(object);
+                    }
+                    trackIfPresent(tile.getWallObject());
+                    trackIfPresent(tile.getDecorativeObject());
+                    trackIfPresent(tile.getGroundObject());
+                }
+            }
+        }
+    }
+
+    private void trackIfPresent(TileObject object)
+    {
+        if (object != null)
+        {
+            track(object);
+        }
+    }
+
     private void track(TileObject object)
     {
         Course owner = course != null && course.stepOf(object.getId()) >= 0 ? course : Course.withObstacle(object.getId());
@@ -209,9 +260,14 @@ public class RooftopLensPlugin extends Plugin
         try
         {
             Map<String, ViewBook.View> views = gson.fromJson(json, VIEWS_TYPE);
+            if (views == null)
+            {
+                return loaded;
+            }
             views.forEach((key, view) ->
             {
-                if (view.clicks.size() == course.stepCount())
+                if (view != null && view.clicks != null && view.clicks.size() == course.stepCount()
+                    && view.clicks.stream().allMatch(step -> step != null && !step.isEmpty()))
                 {
                     loaded.views.put(key, view);
                 }
