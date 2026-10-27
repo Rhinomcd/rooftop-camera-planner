@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
 public class RooftopCameraPlugin extends Plugin
 {
     private static final Logger log = LoggerFactory.getLogger(RooftopCameraPlugin.class);
-    private static final String CALIBRATION_VERSION = "camera-varc-10-v5-usable-envelope";
+    private static final String CALIBRATION_VERSION = "camera-varc-10-v6-jau11";
     @Inject private Client client;
     @Inject private OverlayManager overlayManager;
     @Inject private ConfigManager configManager;
@@ -201,7 +201,7 @@ public class RooftopCameraPlugin extends Plugin
         visibleObstacleCount = boxes.size();
         currentScore = LayoutScorer.score(boxes, client.getViewportWidth(), client.getViewportHeight());
         rejectVisuallyUselessSearchView();
-        if (cameraSettleTracker.observe(client.getCameraYawTarget(), client.getCameraPitchTarget(),
+        if (cameraSettleTracker.observe(cameraYaw(), cameraPitch(),
             currentCameraZoom()))
         {
             List<Rectangle> saved = bestMarkerLayout == null ? Collections.emptyList()
@@ -224,11 +224,11 @@ public class RooftopCameraPlugin extends Plugin
         }
         if (dragAdjusted)
         {
-            reachabilityTracker.cameraDrag(client.getCameraYawTarget());
+            reachabilityTracker.cameraDrag(cameraYaw());
         }
         CameraTarget observedTarget = course == null ? null : getSearchTarget();
         if (course != null && observedTarget != null && automaticCameraShiftDetector.observe(
-            client.getCameraYawTarget(), client.getCameraPitchTarget(), currentCameraZoom(),
+            cameraYaw(), cameraPitch(), currentCameraZoom(),
             wheelAdjusted || dragAdjusted, lapOptimizer.isActive()))
         {
             // Rooftop transitions can move the camera without player input. Preserve
@@ -239,7 +239,7 @@ public class RooftopCameraPlugin extends Plugin
             calibrationNote = "GAME SHIFT: LAP ACCEPTED";
         }
         boolean boundsChanged = course != null && reachabilityTracker.observe(observedTarget,
-            client.getCameraYawTarget(), client.getCameraPitchTarget(), currentCameraZoom(), cameraBounds);
+            cameraYaw(), cameraPitch(), currentCameraZoom(), cameraBounds);
         boolean targetUnreachable = course != null && reachabilityTracker.consumeTargetUnreachable();
         if (boundsChanged)
         {
@@ -264,8 +264,8 @@ public class RooftopCameraPlugin extends Plugin
             lapOptimizer.pauseMouseSampling();
             return;
         }
-        lapOptimizer.sampleMouse(point.getX(), point.getY(), client.getCameraYawTarget(),
-            client.getCameraPitchTarget(), currentCameraZoom());
+        lapOptimizer.sampleMouse(point.getX(), point.getY(), cameraYaw(),
+            cameraPitch(), currentCameraZoom());
     }
 
     @Subscribe
@@ -281,7 +281,7 @@ public class RooftopCameraPlugin extends Plugin
             }
             if (obstacleIndex == 0 && bestMarkerLayout != null)
             {
-                cameraSettleTracker.begin(client.getCameraYawTarget(), client.getCameraPitchTarget(),
+                cameraSettleTracker.begin(cameraYaw(), cameraPitch(),
                     currentCameraZoom());
                 adjustedScreenMarkers = Collections.emptyList();
                 calibrationNote = "CAMERA SETTLING - MARKERS PAUSED";
@@ -291,10 +291,10 @@ public class RooftopCameraPlugin extends Plugin
             {
                 CameraTarget target = alignmentTarget();
                 LapOptimizer.CompletedLap lap = lapOptimizer.obstacleClicked(obstacleIndex,
-                    point.getX(), point.getY(), client.getCameraYawTarget(),
-                    client.getCameraPitchTarget(), currentCameraZoom(),
+                    point.getX(), point.getY(), cameraYaw(),
+                    cameraPitch(), currentCameraZoom(),
                     clickboxFor(event.getId(), point.getX(), point.getY()), calibrationCameraAccepted(
-                        target, client.getCameraYawTarget(), client.getCameraPitchTarget(), currentCameraZoom(),
+                        target, cameraYaw(), cameraPitch(), currentCameraZoom(),
                         forcedCameraShiftThisLap));
                 if (lap != null && config.autoLearn())
                 {
@@ -504,7 +504,7 @@ public class RooftopCameraPlugin extends Plugin
         {
             if (bestTravelProfile == null) return "Complete a lap to begin calibration";
             CameraTarget best = new CameraTarget(bestTravelProfile.yaw, bestTravelProfile.pitch, bestTravelProfile.zoom);
-            return cameraAligned(client.getCameraYawTarget(), client.getCameraPitchTarget(), currentCameraZoom(),
+            return cameraAligned(cameraYaw(), cameraPitch(), currentCameraZoom(),
                 bestTravelProfile) ? "Optimized camera locked - markers active" : directionsTo(best);
         }
         if (alignedTo(target))
@@ -531,8 +531,8 @@ public class RooftopCameraPlugin extends Plugin
         }
         if (target == null) return null;
         return new CameraGuidanceState(
-            signedYawDelta(client.getCameraYawTarget(), target.yaw),
-            target.pitch - client.getCameraPitchTarget(),
+            signedYawDelta(cameraYaw(), target.yaw),
+            target.pitch - cameraPitch(),
             target.zoom - currentCameraZoom(), calibration, getValidCalibrationLaps(), calibrationTargetSamples);
     }
 
@@ -542,8 +542,8 @@ public class RooftopCameraPlugin extends Plugin
         {
             return false;
         }
-        int yawDelta = signedYawDelta(client.getCameraYawTarget(), target.yaw);
-        int pitchDelta = target.pitch - client.getCameraPitchTarget();
+        int yawDelta = signedYawDelta(cameraYaw(), target.yaw);
+        int pitchDelta = target.pitch - cameraPitch();
         int zoomDelta = target.zoom - currentCameraZoom();
         return Math.abs(yawDelta) <= 8 && Math.abs(pitchDelta) <= 4 && Math.abs(zoomDelta) <= 8;
     }
@@ -564,8 +564,8 @@ public class RooftopCameraPlugin extends Plugin
 
     private String directionsTo(CameraTarget target)
     {
-        int yawDelta = signedYawDelta(client.getCameraYawTarget(), target.yaw);
-        int pitchDelta = target.pitch - client.getCameraPitchTarget();
+        int yawDelta = signedYawDelta(cameraYaw(), target.yaw);
+        int pitchDelta = target.pitch - cameraPitch();
         int zoomDelta = target.zoom - currentCameraZoom();
         String turn = Math.abs(yawDelta) <= 8 ? "hold yaw" : yawDelta > 0 ? "rotate right" : "rotate left";
         String tilt = Math.abs(pitchDelta) <= 4 ? "hold pitch" : pitchDelta > 0 ? "tilt up" : "tilt down";
@@ -808,13 +808,24 @@ public class RooftopCameraPlugin extends Plugin
 
     private CameraTarget currentCameraTarget()
     {
-        return canonicalCameraTarget(client.getCameraYawTarget(), client.getCameraPitchTarget(), currentCameraZoom());
+        return canonicalCameraTarget(cameraYaw(), cameraPitch(), currentCameraZoom());
     }
 
     static CameraTarget canonicalCameraTarget(int yaw, int pitch, int zoom)
     {
         return new CameraTarget(CameraSearchPlanner.normalizeYaw(quantize(yaw, 16)),
             quantize(pitch, 8), quantize(zoom, 16));
+    }
+
+    /** RuneLite reports camera angles in JAU14; calibration math works in JAU11 (2048 per turn). */
+    private int cameraYaw()
+    {
+        return client.getCameraYawTarget() >> 3;
+    }
+
+    private int cameraPitch()
+    {
+        return client.getCameraPitchTarget() >> 3;
     }
 
     private int currentCameraZoom()
