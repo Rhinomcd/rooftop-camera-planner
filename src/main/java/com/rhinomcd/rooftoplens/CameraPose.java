@@ -1,29 +1,27 @@
 package com.rhinomcd.rooftoplens;
 
 import net.runelite.api.Client;
-import net.runelite.api.gameval.VarClientID;
 
-/** Yaw and pitch in JAU11 (2048 per turn), zoom as the client's camera zoom varc. */
+/**
+ * Yaw and pitch in JAU11 (2048 per turn). Zoom is not part of a view: it only scales the projection, and routes are
+ * measured in projection-scale units.
+ */
 final class CameraPose
 {
     static final int YAW_UNITS = 2048;
     static final int STANDARD_MAX_PITCH = 383;
     private static final int YAW_STEP = 64;
     private static final int PITCH_STEP = 16;
-    private static final int ZOOM_STEP = 32;
     private static final int YAW_SLACK = 24;
     private static final int PITCH_SLACK = 7;
-    private static final int ZOOM_SLACK = 15;
 
     final int yaw;
     final int pitch;
-    final int zoom;
 
-    CameraPose(int yaw, int pitch, int zoom)
+    CameraPose(int yaw, int pitch)
     {
         this.yaw = Math.floorMod(yaw, YAW_UNITS);
         this.pitch = pitch;
-        this.zoom = zoom;
     }
 
     /**
@@ -32,17 +30,14 @@ final class CameraPose
      */
     static CameraPose read(Client client)
     {
-        int zoomVarc = client.isResized() ? VarClientID.CAMERA_ZOOM_BIG : VarClientID.CAMERA_ZOOM_SMALL;
-        return new CameraPose(client.getCameraYawTarget() >> 3,
-            Math.min(client.getCameraPitchTarget() >> 3, STANDARD_MAX_PITCH), client.getVarcIntValue(zoomVarc));
+        return new CameraPose(client.getCameraYawTarget() >> 3, Math.min(client.getCameraPitchTarget() >> 3, STANDARD_MAX_PITCH));
     }
 
     /** Within the slack of another pose. Slack is under half a view step, so a pose that holds a snapped view shares its key. */
     boolean holds(CameraPose start)
     {
         return Math.abs(yawDelta(start.yaw)) <= YAW_SLACK
-            && Math.abs(pitch - start.pitch) <= PITCH_SLACK
-            && Math.abs(zoom - start.zoom) <= ZOOM_SLACK;
+            && Math.abs(pitch - start.pitch) <= PITCH_SLACK;
     }
 
     /** Shortest signed rotation from this yaw to the target yaw. */
@@ -62,16 +57,12 @@ final class CameraPose
         {
             return goal.pitch > pitch ? "Tilt camera higher" : "Tilt camera lower";
         }
-        if (Math.abs(goal.zoom - zoom) > ZOOM_SLACK)
-        {
-            return goal.zoom > zoom ? "Zoom in a little" : "Zoom out a little";
-        }
         return "Hold the camera for a lap";
     }
 
     String viewKey()
     {
-        return snap(yaw, YAW_STEP) % YAW_UNITS + ":" + snap(pitch, PITCH_STEP) + ":" + snap(zoom, ZOOM_STEP);
+        return snap(yaw, YAW_STEP) % YAW_UNITS + ":" + snap(pitch, PITCH_STEP);
     }
 
     /** False for views saved before pitch was capped at the standard limit. */
@@ -83,7 +74,7 @@ final class CameraPose
     static CameraPose fromViewKey(String key)
     {
         String[] parts = key.split(":");
-        return new CameraPose(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+        return new CameraPose(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
     }
 
     private static int snap(int value, int step)

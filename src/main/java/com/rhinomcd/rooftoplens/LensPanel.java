@@ -11,6 +11,7 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
 import javax.inject.Inject;
+import net.runelite.api.Client;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -19,7 +20,7 @@ import net.runelite.client.ui.overlay.components.ComponentConstants;
 
 /**
  * The calibrator card, in RuneLite's own overlay style: a viewfinder whose ring sits where the camera should
- * point (sideways for yaw, up and down for tilt, larger or smaller for zoom) and centers when the view is held.
+ * point (sideways for yaw, up and down for tilt) and centers when the view is held.
  */
 final class LensPanel extends Overlay
 {
@@ -33,11 +34,13 @@ final class LensPanel extends Overlay
     private static final Color DIM = new Color(200, 200, 200);
 
     private final RooftopLensPlugin plugin;
+    private final Client client;
 
     @Inject
-    LensPanel(RooftopLensPlugin plugin)
+    LensPanel(RooftopLensPlugin plugin, Client client)
     {
         this.plugin = plugin;
+        this.client = client;
         setPosition(OverlayPosition.TOP_LEFT);
     }
 
@@ -60,6 +63,7 @@ final class LensPanel extends Overlay
         boolean onGoal = lapRunning || camera.holds(goal);
         String bestKey = book.bestKey(camera);
         boolean isBest = goal.viewKey().equals(bestKey);
+        boolean calibrated = book.calibrated(camera);
 
         Font bold = FontManager.getRunescapeBoldFont();
         Font small = FontManager.getRunescapeSmallFont();
@@ -70,16 +74,18 @@ final class LensPanel extends Overlay
         drawFinder(g, camera, goal, onGoal);
 
         String status = lapRunning ? "Lap in progress"
+            : calibrated ? (onGoal ? "Calibrated" : "Back to best view")
             : onGoal ? (isBest ? "On best view" : "On test view") : (isBest ? "Best view" : "Try this view");
         text(g, bold, status, TEXT_X, 34, onGoal ? GOOD : TODO);
-        text(g, small, onGoal ? "Hold the camera" : camera.directionsTo(goal), TEXT_X, 49, Color.WHITE);
+        String hint = !onGoal ? camera.directionsTo(goal) : calibrated && !lapRunning ? "Best view found" : "Hold the camera";
+        text(g, small, hint, TEXT_X, 49, Color.WHITE);
         ViewBook.View here = book.view(camera);
         text(g, small, here == null ? "This view: not learned"
-            : "This view: " + here.keptLaps() + (here.keptLaps() == 1 ? " lap" : " laps") + " · " + Math.round(here.routePixels()) + " px",
+            : "This view: " + here.keptLaps() + (here.keptLaps() == 1 ? " lap" : " laps") + " · " + pixels(here) + " px",
             TEXT_X, 63, DIM);
         if (bestKey != null)
         {
-            text(g, small, "Best: " + Math.round(book.views.get(bestKey).routePixels()) + " px", TEXT_X, 76, DIM);
+            text(g, small, "Best: " + pixels(book.views.get(bestKey)) + " px", TEXT_X, 76, DIM);
         }
 
         String notice = plugin.getNotice();
@@ -88,6 +94,12 @@ final class LensPanel extends Overlay
             text(g, small, notice, PAD, HEIGHT - 5, plugin.isNoticeWarning() ? Color.RED : GOOD);
         }
         return new Dimension(WIDTH, HEIGHT);
+    }
+
+    /** A view's route at the current window size and zoom. */
+    private long pixels(ViewBook.View view)
+    {
+        return Math.round(view.route() * client.getScale());
     }
 
     private static void drawFinder(Graphics2D g, CameraPose camera, CameraPose goal, boolean onGoal)
@@ -116,14 +128,13 @@ final class LensPanel extends Overlay
         }
         double ox = clamp(camera.yawDelta(goal.yaw) / 512.0 * 18, 20);
         double oy = clamp(-(goal.pitch - camera.pitch) / 6.0, 15);
-        double r = 9 + clamp((goal.zoom - camera.zoom) / 16.0, 5);
         g.setStroke(new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f, new float[] { 2f, 2f }, 0f));
         g.setColor(new Color(255, 255, 255, 120));
         g.draw(new Ellipse2D.Double(cx - 9, cy - 9, 18, 18));
         g.setStroke(new BasicStroke(1.5f));
         g.setColor(TODO);
         g.draw(new Line2D.Double(cx, cy, cx + ox, cy + oy));
-        ring(g, cx + ox, cy + oy, r, TODO);
+        ring(g, cx + ox, cy + oy, 9, TODO);
     }
 
     private static void ring(Graphics2D g, double x, double y, double r, Color color)

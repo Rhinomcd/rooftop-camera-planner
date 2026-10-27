@@ -4,7 +4,8 @@
 
 Rooftop Lens watches your laps. Each lap you finish without moving the camera is filed under that camera view,
 along with where you clicked each obstacle. A view's score is the distance your mouse travels through your usual
-click spots for one lap. The shortest route wins.
+click spots for one lap. The shortest route wins. Distances are measured relative to the game's projection, so
+resizing the window or zooming doesn't change them, and zoom isn't part of a view.
 
 The plugin never moves the camera, mouse, or character, and never clicks for you. Everything is stored in your
 local RuneLite config.
@@ -13,9 +14,11 @@ local RuneLite config.
 
 1. Go to a rooftop course. A card in RuneLite's overlay style appears with the course name and your lap
    progress.
-2. Follow the viewfinder: the orange ring sits where the camera should point. It sits left or right for rotation,
-   up or down for tilt, and grows or shrinks for zoom. The text says the same thing in words. **Try this view** is
-   a quarter turn you haven't lapped yet; **Best view** is your shortest route so far. When you're on the view,
+2. Follow the viewfinder: the orange ring sits where the camera should point. It sits left or right for rotation
+   and up or down for tilt. The text says the same thing in words. **Try this view** is a view you haven't lapped
+   yet: the four quarter turns, then 45° and 22.5° either side of the best one. **Best view** is your shortest
+   route so far. Views are compared at the pitch of your latest lap, so if you tilt away the card asks you to tilt
+   back. Once every view the search wants has a lap, the card says **Calibrated**. When you're on the view,
    the ring centers and turns green.
 3. Run a lap from the first obstacle to the last without touching the camera. While a lap runs, the card holds
    the view you started in. A finished lap shows **Lap learned**. If the camera leaves that view, the card shows

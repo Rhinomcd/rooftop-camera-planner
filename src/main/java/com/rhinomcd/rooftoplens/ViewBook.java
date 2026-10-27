@@ -10,8 +10,9 @@ import java.util.Map;
 
 /**
  * Every camera view the player has completed a clean lap in, for one course. A view's score is the median, over
- * its recent laps, of the cyclic pixel distance through that lap's clicks: the mouse travel one lap needs.
- * Views are only compared at the same pitch and zoom, because zooming out shrinks every distance.
+ * its recent laps, of the cyclic distance through that lap's clicks: the mouse travel one lap needs, in
+ * projection-scale units so it survives window resizes and zoom. Views are compared at one pitch, the calibration
+ * pitch: the pitch of the latest lap.
  */
 final class ViewBook
 {
@@ -27,30 +28,15 @@ final class ViewBook
         this.steps = steps;
     }
 
-    void record(LapRecorder.Lap lap, int canvasWidth, int canvasHeight)
+    void record(LapRecorder.Lap lap)
     {
-        for (View other : views.values())
-        {
-            if (other.canvasWidth != canvasWidth || other.canvasHeight != canvasHeight)
-            {
-                // Routes measured on another canvas size can't be compared with this one.
-                other.clicks.forEach(List::clear);
-                other.canvasWidth = canvasWidth;
-                other.canvasHeight = canvasHeight;
-            }
-        }
         View view = views.computeIfAbsent(lap.camera.viewKey(), key -> new View(steps));
         view.laps++;
-        view.canvasWidth = canvasWidth;
-        view.canvasHeight = canvasHeight;
-        if (view.boxClicks == null)
-        {
-            view.boxClicks = emptySteps(steps);
-        }
+        view.learned = views.values().stream().mapToLong(other -> other.learned).max().orElse(0) + 1;
         for (int step = 0; step < steps; step++)
         {
             LapRecorder.Click click = lap.clicks[step];
-            keep(view.clicks.get(step), click.canvas);
+            keep(view.clicks.get(step), click.lens);
             if (click.onBox != null)
             {
                 keep(view.boxClicks.get(step), click.onBox);
@@ -82,24 +68,35 @@ final class ViewBook
         return views.get(camera.viewKey());
     }
 
-    /** The shortest-route view at the camera's pitch and zoom, or null if none has a kept lap. */
+    /** The snapped pitch views are compared at: the latest lap's, else the camera's own. */
+    int calibrationPitch(CameraPose camera)
+    {
+        String latest = views.entrySet().stream()
+            .max(Comparator.comparingLong(entry -> entry.getValue().learned))
+            .map(Map.Entry::getKey)
+            .orElse(camera.viewKey());
+        return CameraPose.fromViewKey(latest).pitch;
+    }
+
+    /** The shortest-route view at the calibration pitch, or null if none has a lap. */
     String bestKey(CameraPose camera)
     {
-        String level = level(camera);
+        int pitch = calibrationPitch(camera);
         return views.entrySet().stream()
-            .filter(entry -> entry.getValue().keptLaps() > 0 && level(CameraPose.fromViewKey(entry.getKey())).equals(level))
-            .min(Comparator.comparingDouble(entry -> entry.getValue().routePixels()))
+            .filter(entry -> entry.getValue().keptLaps() > 0 && CameraPose.fromViewKey(entry.getKey()).pitch == pitch)
+            .min(Comparator.comparingDouble(entry -> entry.getValue().route()))
             .map(Map.Entry::getKey)
             .orElse(null);
     }
 
     /**
-     * The view to try next, at the camera's pitch and zoom: an untried quarter turn nearest the current yaw, then
-     * untried yaws 45 and then 22.5 degrees either side of the best view, then the best view itself.
+     * The view to try next, at the calibration pitch: an untried quarter turn nearest the current yaw, then untried
+     * yaws 45 and then 22.5 degrees either side of the best view, then the best view itself.
      */
     CameraPose suggestion(CameraPose current)
     {
-        CameraPose untried = nearestUntried(current, QUARTER_TURNS);
+        CameraPose home = new CameraPose(current.yaw, calibrationPitch(current));
+        CameraPose untried = nearestUntried(home, QUARTER_TURNS);
         if (untried != null)
         {
             return untried;
@@ -107,7 +104,7 @@ final class ViewBook
         CameraPose best = CameraPose.fromViewKey(bestKey(current));
         for (int spread : REFINE_SPREADS)
         {
-            untried = nearestUntried(current, new int[] { best.yaw - spread, best.yaw + spread });
+            untried = nearestUntried(home, new int[] { best.yaw - spread, best.yaw + spread });
             if (untried != null)
             {
                 return untried;
@@ -116,15 +113,22 @@ final class ViewBook
         return best;
     }
 
-    private CameraPose nearestUntried(CameraPose current, int[] yaws)
+    /** True once every view the search wants has a lap, so the suggestion is the best view for good. */
+    boolean calibrated(CameraPose current)
+    {
+        String best = bestKey(current);
+        return best != null && suggestion(current).viewKey().equals(best);
+    }
+
+    private CameraPose nearestUntried(CameraPose home, int[] yaws)
     {
         CameraPose nearest = null;
         for (int yaw : yaws)
         {
-            CameraPose probe = CameraPose.fromViewKey(new CameraPose(yaw, current.pitch, current.zoom).viewKey());
+            CameraPose probe = CameraPose.fromViewKey(new CameraPose(yaw, home.pitch).viewKey());
             View tried = views.get(probe.viewKey());
             if ((tried == null || tried.keptLaps() == 0)
-                && (nearest == null || Math.abs(current.yawDelta(probe.yaw)) < Math.abs(current.yawDelta(nearest.yaw))))
+                && (nearest == null || Math.abs(home.yawDelta(probe.yaw)) < Math.abs(home.yawDelta(nearest.yaw))))
             {
                 nearest = probe;
             }
@@ -132,21 +136,15 @@ final class ViewBook
         return nearest;
     }
 
-    private static String level(CameraPose camera)
-    {
-        String key = camera.viewKey();
-        return key.substring(key.indexOf(':'));
-    }
-
     static final class View
     {
         int laps;
-        int canvasWidth;
-        int canvasHeight;
-        /** Per step, the most recent clean-lap clicks as canvas fractions {x, y}. Scores the view. */
+        /** Order of this view's latest lap among all views; higher is more recent. */
+        long learned;
+        /** Per step, the most recent clean-lap clicks in lens units {x, y} (see {@link LapRecorder.Click#lens}). */
         final List<List<double[]>> clicks;
         /** Per step, the same clicks as fractions of the obstacle's clickbox bounds. Placed on the live obstacle. */
-        List<List<double[]>> boxClicks;
+        final List<List<double[]>> boxClicks;
 
         View(int steps)
         {
@@ -157,8 +155,8 @@ final class ViewBook
         /** Median click per step inside the obstacle's clickbox bounds, or null if none was recorded. */
         Point2D.Double boxSpot(int step)
         {
-            List<double[]> kept = boxClicks == null ? null : boxClicks.get(step);
-            return kept == null || kept.isEmpty() ? null : median(kept);
+            List<double[]> kept = boxClicks.get(step);
+            return kept.isEmpty() ? null : median(kept);
         }
 
         /** Laps whose clicks still count toward the route. */
@@ -167,8 +165,8 @@ final class ViewBook
             return clicks.stream().mapToInt(List::size).min().orElse(0);
         }
 
-        /** Median over recent laps of one lap's cyclic click-to-click distance, in pixels. */
-        double routePixels()
+        /** Median over recent laps of one lap's cyclic click-to-click distance, in lens units. */
+        double route()
         {
             int laps = keptLaps();
             double[] routes = new double[laps];
@@ -180,7 +178,7 @@ final class ViewBook
                     List<double[]> to = clicks.get((step + 1) % clicks.size());
                     double[] a = from.get(from.size() - laps + lap);
                     double[] b = to.get(to.size() - laps + lap);
-                    routes[lap] += Math.hypot((b[0] - a[0]) * canvasWidth, (b[1] - a[1]) * canvasHeight);
+                    routes[lap] += Math.hypot(b[0] - a[0], b[1] - a[1]);
                 }
             }
             Arrays.sort(routes);

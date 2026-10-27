@@ -4,7 +4,9 @@ import java.awt.geom.Point2D;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class ViewBookTest
 {
@@ -18,91 +20,81 @@ public class ViewBookTest
         return new LapRecorder.Lap(camera, clicks);
     }
 
+    private static void learnQuarterTurns(ViewBook book, int pitch)
+    {
+        book.record(lap(new CameraPose(0, pitch), 0.1, 0.9));
+        book.record(lap(new CameraPose(512, pitch), 0.4, 0.6));
+        book.record(lap(new CameraPose(1024, pitch), 0.2, 0.8));
+        book.record(lap(new CameraPose(1536, pitch), 0.2, 0.8));
+    }
+
     @Test
     public void routeIsTheMedianLapsCyclicTravel()
     {
         ViewBook book = new ViewBook(2);
-        CameraPose view = new CameraPose(0, 384, 256);
-        book.record(lap(view, 0.1, 0.3), 1000, 800);
-        book.record(lap(view, 0.1, 0.5), 1000, 800);
-        book.record(lap(view, 0.1, 0.9), 1000, 800);
+        CameraPose view = new CameraPose(0, 384);
+        book.record(lap(view, 0.1, 0.3));
+        book.record(lap(view, 0.1, 0.5));
+        book.record(lap(view, 0.1, 0.9));
         ViewBook.View learned = book.view(view);
         assertEquals(3, learned.laps);
-        assertEquals(800, learned.routePixels(), 1e-6);
+        assertEquals(0.8, learned.route(), 1e-9);
         assertNull(learned.boxSpot(0));
         assertEquals(0.75, learned.boxSpot(1).y, 1e-9);
-    }
-
-    @Test
-    public void bestIsTheShortestRoute()
-    {
-        ViewBook book = new ViewBook(2);
-        assertNull(book.bestKey(new CameraPose(0, 384, 256)));
-        book.record(lap(new CameraPose(0, 384, 256), 0.1, 0.9), 1000, 800);
-        book.record(lap(new CameraPose(512, 384, 256), 0.4, 0.6), 1000, 800);
-        assertEquals("512:384:256", book.bestKey(new CameraPose(0, 384, 256)));
-    }
-
-    @Test
-    public void suggestsQuarterTurnsThenRefinesAroundTheBest()
-    {
-        ViewBook book = new ViewBook(2);
-        CameraPose camera = new CameraPose(100, 380, 250);
-        assertEquals("0:384:256", book.suggestion(camera).viewKey());
-        book.record(lap(new CameraPose(0, 384, 256), 0.1, 0.9), 1000, 800);
-        assertEquals("512:384:256", book.suggestion(camera).viewKey());
-        book.record(lap(new CameraPose(512, 384, 256), 0.4, 0.6), 1000, 800);
-        book.record(lap(new CameraPose(1024, 384, 256), 0.2, 0.8), 1000, 800);
-        book.record(lap(new CameraPose(1536, 384, 256), 0.2, 0.8), 1000, 800);
-        assertEquals("256:384:256", book.suggestion(camera).viewKey());
-        book.record(lap(new CameraPose(256, 384, 256), 0.3, 0.7), 1000, 800);
-        book.record(lap(new CameraPose(768, 384, 256), 0.45, 0.55), 1000, 800);
-        assertEquals("640:384:256", book.suggestion(camera).viewKey());
-        book.record(lap(new CameraPose(640, 384, 256), 0.3, 0.7), 1000, 800);
-        book.record(lap(new CameraPose(896, 384, 256), 0.3, 0.7), 1000, 800);
-        assertEquals("768:384:256", book.suggestion(camera).viewKey());
-    }
-
-    @Test
-    public void viewsAtAnotherZoomAreNotCompared()
-    {
-        ViewBook book = new ViewBook(2);
-        book.record(lap(new CameraPose(0, 384, 256), 0.4, 0.6), 1000, 800);
-        book.record(lap(new CameraPose(512, 384, 896), 0.49, 0.51), 1000, 800);
-        assertEquals("0:384:256", book.bestKey(new CameraPose(0, 384, 256)));
-        assertEquals("512:384:896", book.bestKey(new CameraPose(0, 384, 896)));
-    }
-
-    @Test
-    public void resizingTheCanvasStartsTheViewsRouteAfresh()
-    {
-        ViewBook book = new ViewBook(2);
-        CameraPose view = new CameraPose(0, 384, 256);
-        book.record(lap(view, 0.1, 0.9), 1000, 800);
-        book.record(lap(view, 0.4, 0.6), 500, 400);
-        assertEquals(200, book.view(view).routePixels(), 1e-6);
-        assertEquals(1, book.view(view).keptLaps());
     }
 
     @Test
     public void routeFollowsEachLapNotTheAverageSpot()
     {
         ViewBook book = new ViewBook(2);
-        CameraPose view = new CameraPose(0, 384, 256);
-        book.record(lap(view, 0.1, 0.9), 1000, 800);
-        book.record(lap(view, 0.5, 0.5), 1000, 800);
-        book.record(lap(view, 0.9, 0.1), 1000, 800);
-        assertEquals(1600, book.view(view).routePixels(), 1e-6);
+        CameraPose view = new CameraPose(0, 384);
+        book.record(lap(view, 0.1, 0.9));
+        book.record(lap(view, 0.5, 0.5));
+        book.record(lap(view, 0.9, 0.1));
+        assertEquals(1.6, book.view(view).route(), 1e-9);
     }
 
     @Test
-    public void resizingTheCanvasRestartsEveryViewsRoute()
+    public void bestIsTheShortestRoute()
     {
         ViewBook book = new ViewBook(2);
-        book.record(lap(new CameraPose(0, 384, 256), 0.45, 0.55), 1000, 800);
-        book.record(lap(new CameraPose(512, 384, 256), 0.4, 0.6), 500, 400);
-        assertEquals(0, book.view(new CameraPose(0, 384, 256)).keptLaps());
-        assertEquals("512:384:256", book.bestKey(new CameraPose(0, 384, 256)));
-        assertEquals("0:384:256", book.suggestion(new CameraPose(0, 384, 256)).viewKey());
+        assertNull(book.bestKey(new CameraPose(0, 384)));
+        book.record(lap(new CameraPose(0, 384), 0.1, 0.9));
+        book.record(lap(new CameraPose(512, 384), 0.4, 0.6));
+        assertEquals("512:384", book.bestKey(new CameraPose(0, 384)));
+    }
+
+    @Test
+    public void suggestsQuarterTurnsThenRefinesAroundTheBestThenSettles()
+    {
+        ViewBook book = new ViewBook(2);
+        CameraPose camera = new CameraPose(100, 380);
+        assertEquals("0:384", book.suggestion(camera).viewKey());
+        book.record(lap(new CameraPose(0, 384), 0.1, 0.9));
+        assertEquals("512:384", book.suggestion(camera).viewKey());
+        learnQuarterTurns(book, 384);
+        assertEquals("256:384", book.suggestion(camera).viewKey());
+        book.record(lap(new CameraPose(256, 384), 0.3, 0.7));
+        book.record(lap(new CameraPose(768, 384), 0.45, 0.55));
+        assertEquals("640:384", book.suggestion(camera).viewKey());
+        book.record(lap(new CameraPose(640, 384), 0.3, 0.7));
+        assertFalse(book.calibrated(camera));
+        book.record(lap(new CameraPose(896, 384), 0.3, 0.7));
+        assertEquals("768:384", book.suggestion(camera).viewKey());
+        assertTrue(book.calibrated(camera));
+    }
+
+    @Test
+    public void viewsAreComparedAtTheLatestLapsPitch()
+    {
+        ViewBook book = new ViewBook(2);
+        book.record(lap(new CameraPose(512, 304), 0.49, 0.51));
+        learnQuarterTurns(book, 384);
+        CameraPose drifted = new CameraPose(512, 304);
+        assertEquals(384, book.calibrationPitch(drifted));
+        assertEquals("512:384", book.bestKey(drifted));
+        assertEquals("256:384", book.suggestion(drifted).viewKey());
+        assertEquals("Rotate left 45°", drifted.directionsTo(book.suggestion(drifted)));
+        assertEquals("Tilt camera higher", drifted.directionsTo(new CameraPose(512, 384)));
     }
 }

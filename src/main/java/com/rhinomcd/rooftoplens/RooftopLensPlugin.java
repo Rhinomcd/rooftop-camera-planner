@@ -164,7 +164,7 @@ public class RooftopLensPlugin extends Plugin
         switch (recorder.obstacleClicked(step, click, clicked))
         {
             case COMPLETED:
-                book.record(recorder.lastLap(), client.getCanvasWidth(), client.getCanvasHeight());
+                book.record(recorder.lastLap());
                 configManager.setConfiguration(RooftopLensConfig.GROUP, viewsKey(course), gson.toJson(book.views));
                 log.info("Lap learned on {} in view {}", course, recorder.lastLap().camera.viewKey());
                 showNotice("Lap learned", false);
@@ -271,7 +271,10 @@ public class RooftopLensPlugin extends Plugin
         }
         Point2D.Double onBox = bounds == null || bounds.width == 0 || bounds.height == 0 ? null
             : new Point2D.Double((x - bounds.x) / bounds.width, (y - bounds.y) / bounds.height);
-        return new LapRecorder.Click(new Point2D.Double(x / client.getCanvasWidth(), y / client.getCanvasHeight()), onBox);
+        double scale = client.getScale();
+        double centerX = client.getViewportXOffset() + client.getViewportWidth() / 2.0;
+        double centerY = client.getViewportYOffset() + client.getViewportHeight() / 2.0;
+        return new LapRecorder.Click(new Point2D.Double((x - centerX) / scale, (y - centerY) / scale), onBox);
     }
 
     private ViewBook loadBook(Course course)
@@ -291,13 +294,9 @@ public class RooftopLensPlugin extends Plugin
             }
             views.forEach((key, view) ->
             {
-                if (view != null && reachableViewKey(key) && view.canvasWidth > 0
-                    && view.canvasHeight > 0 && validSteps(view.clicks, course.stepCount(), false))
+                if (view != null && reachableViewKey(key) && validSteps(view.clicks, course.stepCount())
+                    && validSteps(view.boxClicks, course.stepCount()))
                 {
-                    if (!validSteps(view.boxClicks, course.stepCount(), true))
-                    {
-                        view.boxClicks = null;
-                    }
                     loaded.views.put(key, view);
                 }
             });
@@ -312,20 +311,19 @@ public class RooftopLensPlugin extends Plugin
     private static boolean reachableViewKey(String key)
     {
         String[] parts = key.split(":");
-        return parts.length == 3 && Arrays.stream(parts).allMatch(part -> part.matches("-?\\d+"))
+        return parts.length == 2 && Arrays.stream(parts).allMatch(part -> part.matches("-?\\d+"))
             && CameraPose.fromViewKey(key).withinStandardPitch();
     }
 
-    private static boolean validSteps(List<List<double[]>> steps, int count, boolean emptyAllowed)
+    private static boolean validSteps(List<List<double[]>> steps, int count)
     {
         return steps != null && steps.size() == count && steps.stream().allMatch(step -> step != null
-            && (emptyAllowed || !step.isEmpty()) && step.stream().allMatch(click -> click != null && click.length == 2));
+            && step.stream().allMatch(click -> click != null && click.length == 2));
     }
 
     private void lapDropped(CameraPose start, CameraPose now)
     {
-        log.info("Lap dropped on {}: started {}/{}/{} now {}/{}/{}", course, start.yaw, start.pitch,
-            start.zoom, now.yaw, now.pitch, now.zoom);
+        log.info("Lap dropped on {}: started {}/{} now {}/{}", course, start.yaw, start.pitch, now.yaw, now.pitch);
         showNotice("Camera moved, lap dropped", true);
     }
 
