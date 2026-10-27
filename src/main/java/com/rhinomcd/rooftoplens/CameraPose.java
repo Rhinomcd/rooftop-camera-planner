@@ -7,6 +7,7 @@ import net.runelite.api.gameval.VarClientID;
 final class CameraPose
 {
     static final int YAW_UNITS = 2048;
+    static final int STANDARD_MAX_PITCH = 383;
     private static final int YAW_STEP = 64;
     private static final int PITCH_STEP = 16;
     private static final int ZOOM_STEP = 32;
@@ -25,12 +26,15 @@ final class CameraPose
         this.zoom = zoom;
     }
 
-    /** RuneLite reports camera angles in JAU14. */
+    /**
+     * RuneLite reports camera angles in JAU14. Pitch above the game's standard limit (expanded with the Camera
+     * plugin's pitch relaxer) is read as the limit, because the game pulls it back there mid-course on its own.
+     */
     static CameraPose read(Client client)
     {
         int zoomVarc = client.isResized() ? VarClientID.CAMERA_ZOOM_BIG : VarClientID.CAMERA_ZOOM_SMALL;
-        return new CameraPose(client.getCameraYawTarget() >> 3, client.getCameraPitchTarget() >> 3,
-            client.getVarcIntValue(zoomVarc));
+        return new CameraPose(client.getCameraYawTarget() >> 3,
+            Math.min(client.getCameraPitchTarget() >> 3, STANDARD_MAX_PITCH), client.getVarcIntValue(zoomVarc));
     }
 
     /** Within the slack of another pose. Slack is under half a view step, so a pose that holds a snapped view shares its key. */
@@ -68,6 +72,12 @@ final class CameraPose
     String viewKey()
     {
         return snap(yaw, YAW_STEP) % YAW_UNITS + ":" + snap(pitch, PITCH_STEP) + ":" + snap(zoom, ZOOM_STEP);
+    }
+
+    /** False for views saved before pitch was capped at the standard limit. */
+    boolean withinStandardPitch()
+    {
+        return pitch <= snap(STANDARD_MAX_PITCH, PITCH_STEP);
     }
 
     static CameraPose fromViewKey(String key)

@@ -131,8 +131,7 @@ public class RooftopLensPlugin extends Plugin
     @Subscribe
     public void onClientTick(ClientTick event)
     {
-        // Unfocused, the client reports a clamped pitch target (433 read as 383); obstacle clicks still check the view.
-        if (course == null || !client.getCanvas().isFocusOwner())
+        if (course == null)
         {
             return;
         }
@@ -283,7 +282,7 @@ public class RooftopLensPlugin extends Plugin
             }
             views.forEach((key, view) ->
             {
-                if (view != null && view.canvasWidth > 0 && view.canvasHeight > 0 && view.clicks != null
+                if (view != null && CameraPose.fromViewKey(key).withinStandardPitch() && view.canvasWidth > 0 && view.canvasHeight > 0 && view.clicks != null
                     && view.clicks.size() == course.stepCount()
                     && view.clicks.stream().allMatch(step -> step != null && !step.isEmpty()
                         && step.stream().allMatch(click -> click != null && click.length == 2)))
@@ -301,8 +300,8 @@ public class RooftopLensPlugin extends Plugin
 
     private void lapDropped(CameraPose start, CameraPose now)
     {
-        log.info("Lap dropped on {}: started {}/{}/{} now {}/{}/{} focused={}", course, start.yaw, start.pitch,
-            start.zoom, now.yaw, now.pitch, now.zoom, client.getCanvas().isFocusOwner());
+        log.info("Lap dropped on {}: started {}/{}/{} now {}/{}/{}", course, start.yaw, start.pitch,
+            start.zoom, now.yaw, now.pitch, now.zoom);
         showNotice("Camera moved, lap dropped", true);
     }
 

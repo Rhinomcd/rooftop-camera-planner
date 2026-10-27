@@ -42,4 +42,12 @@ public class CameraPoseTest
         assertEquals("Zoom out a little", camera.directionsTo(new CameraPose(0, 300, 400)));
         assertEquals("Hold the camera for a lap", camera.directionsTo(new CameraPose(10, 303, 510)));
     }
+
+    @Test
+    public void viewsAboveTheStandardPitchLimitAreOutOfReach()
+    {
+        assertTrue(new CameraPose(0, CameraPose.STANDARD_MAX_PITCH, 256).withinStandardPitch());
+        assertTrue(CameraPose.fromViewKey(new CameraPose(0, CameraPose.STANDARD_MAX_PITCH, 256).viewKey()).withinStandardPitch());
+        assertFalse(CameraPose.fromViewKey("0:432:160").withinStandardPitch());
+    }
 }
