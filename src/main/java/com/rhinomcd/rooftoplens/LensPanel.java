@@ -61,7 +61,7 @@ final class LensPanel extends Overlay
         ViewBook book = plugin.getBook();
         boolean lapRunning = plugin.getRecorder().inProgress();
         CameraPose goal = lapRunning ? plugin.getRecorder().startView() : book.suggestion(camera);
-        boolean onGoal = camera.holds(goal);
+        boolean onGoal = lapRunning || camera.holds(goal);
         drawCompass(g, PAD + 26, 82, camera, goal, onGoal);
 
         int textX = PAD + 64;

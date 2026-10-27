@@ -39,6 +39,8 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @PluginDescriptor(
     name = "Rooftop Lens",
@@ -48,6 +50,7 @@ import net.runelite.client.ui.overlay.OverlayManager;
 public class RooftopLensPlugin extends Plugin
 {
     private static final Type VIEWS_TYPE = new TypeToken<LinkedHashMap<String, ViewBook.View>>() { }.getType();
+    private static final Logger log = LoggerFactory.getLogger(RooftopLensPlugin.class);
     private static final int NOTICE_TICKS = 10;
     private static final Set<MenuAction> OBSTACLE_ACTIONS = EnumSet.of(MenuAction.GAME_OBJECT_FIRST_OPTION,
         MenuAction.GAME_OBJECT_SECOND_OPTION, MenuAction.GAME_OBJECT_THIRD_OPTION,
@@ -133,9 +136,10 @@ public class RooftopLensPlugin extends Plugin
             return;
         }
         camera = CameraPose.read(client);
+        CameraPose start = recorder.inProgress() ? recorder.startView() : null;
         if (recorder.cameraSampled(camera))
         {
-            showNotice("Camera moved, lap dropped", true);
+            lapDropped(start, camera);
         }
     }
 
@@ -152,15 +156,18 @@ public class RooftopLensPlugin extends Plugin
         {
             return;
         }
-        switch (recorder.obstacleClicked(step, click, CameraPose.read(client)))
+        CameraPose clicked = CameraPose.read(client);
+        CameraPose start = recorder.inProgress() ? recorder.startView() : null;
+        switch (recorder.obstacleClicked(step, click, clicked))
         {
             case COMPLETED:
                 book.record(recorder.lastLap(), client.getCanvasWidth(), client.getCanvasHeight());
                 configManager.setConfiguration(RooftopLensConfig.GROUP, viewsKey(course), gson.toJson(book.views));
+                log.info("Lap learned on {} in view {}", course, recorder.lastLap().camera.viewKey());
                 showNotice("Lap learned", false);
                 break;
             case CAMERA_MOVED:
-                showNotice("Camera moved, lap dropped", true);
+                lapDropped(start, clicked);
                 break;
             default:
                 break;
@@ -289,6 +296,13 @@ public class RooftopLensPlugin extends Plugin
             // An unreadable record is discarded; the next clean lap starts a new one.
         }
         return loaded;
+    }
+
+    private void lapDropped(CameraPose start, CameraPose now)
+    {
+        log.info("Lap dropped on {}: started {}/{}/{} now {}/{}/{} focused={}", course, start.yaw, start.pitch,
+            start.zoom, now.yaw, now.pitch, now.zoom, client.getCanvas().isFocusOwner());
+        showNotice("Camera moved, lap dropped", true);
     }
 
     private void showNotice(String text, boolean warning)
