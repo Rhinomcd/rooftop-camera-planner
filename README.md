@@ -35,6 +35,17 @@ The next obstacle is filled amber. Other obstacles are outlined in teal with the
 
 Draynor Village, Al Kharid, Varrock, Canifis, Falador, Seers' Village, Pollnivneach, Rellekka, Ardougne.
 
+## Credits
+
+Rooftop Lens is a fork and rewrite of [Rooftop Camera Planner](https://github.com/MichaelRVP/rooftop-camera-planner)
+by MVP IT Solutions ([MichaelRVP](https://github.com/MichaelRVP)). That project came up with the idea of learning
+a low-travel camera view from your laps and marking the click route, and its course table is carried over here.
+Course data traces back to RuneLite's Agility plugin. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## License
+
+[BSD 2-Clause](LICENSE). The original copyright notice from Rooftop Camera Planner is kept alongside this fork's.
+
 ## Development
 
 ```

@@ -36,3 +36,10 @@ tasks.register('run', JavaExec) {
     jvmArgs '-ea', '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED'
     args '--developer-mode', '--debug'
 }
+
+tasks.named('jar', Jar) {
+    metaInf {
+        from 'LICENSE'
+        from 'THIRD_PARTY_NOTICES.md'
+    }
+}
