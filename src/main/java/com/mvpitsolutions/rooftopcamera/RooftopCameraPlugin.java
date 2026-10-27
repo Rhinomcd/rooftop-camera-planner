@@ -129,7 +129,8 @@ public class RooftopCameraPlugin extends Plugin
     @Subscribe
     public void onGameTick(GameTick event)
     {
-        RooftopCourse detected = detectCourse();
+        RooftopCourse detected = activeCourse(course, detectCourse(), lapOptimizer.isActive(),
+            client.getLocalPlayer() == null ? 0 : client.getLocalPlayer().getWorldLocation().getPlane());
         if (detected != course)
         {
             course = detected;
@@ -472,6 +473,11 @@ public class RooftopCameraPlugin extends Plugin
                 calibrationTargetSamples);
         }
         return activeSearchTarget;
+    }
+
+    static RooftopCourse activeCourse(RooftopCourse current, RooftopCourse detected, boolean lapActive, int plane)
+    {
+        return detected == null && lapActive && plane > 0 ? current : detected;
     }
 
     static boolean shouldFollowLiveCameraForBaseline(int completedSamples, boolean lapActive)

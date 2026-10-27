@@ -8,6 +8,7 @@ import java.awt.Rectangle;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import net.runelite.api.gameval.ObjectID;
 
@@ -118,5 +119,16 @@ public class RooftopCourseTest
         }
         assertNotNull(completed);
         assertEquals(1, optimizer.getCompletedLaps());
+    }
+
+    @Test
+    public void activeLapKeepsCourseWhenRooftopCrossesIntoUnlistedRegion()
+    {
+        RooftopCourse rellekka = RooftopCourse.RELLEKKA;
+
+        assertEquals(rellekka, RooftopCameraPlugin.activeCourse(rellekka, null, true, 3));
+        assertNull(RooftopCameraPlugin.activeCourse(rellekka, null, false, 3));
+        assertNull(RooftopCameraPlugin.activeCourse(rellekka, null, true, 0));
+        assertEquals(RooftopCourse.ARDOUGNE, RooftopCameraPlugin.activeCourse(rellekka, RooftopCourse.ARDOUGNE, true, 3));
     }
 }
