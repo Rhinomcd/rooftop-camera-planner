@@ -7,7 +7,7 @@ public class RooftopLensPluginTest
 {
     public static void main(String[] args) throws Exception
     {
-        ExternalPluginManager.loadBuiltin(RooftopLensPlugin.class);
+        ExternalPluginManager.loadBuiltin(RooftopLensPlugin.class, LensRecorderPlugin.class);
         RuneLite.main(args);
     }
 }
