@@ -5,7 +5,7 @@ import java.awt.geom.Point2D;
 /**
  * Follows obstacle clicks through one lap. A lap starts on the course's first obstacle, advances only on the
  * expected next obstacle, and completes on the last one. Clicks on other obstacles (misclicks, re-clicks) are
- * ignored; clicking the first obstacle again starts over.
+ * ignored; clicking the first obstacle again starts over. Moving the camera out of the starting view drops the lap.
  */
 final class LapRecorder
 {
@@ -15,7 +15,6 @@ final class LapRecorder
     private Point2D.Double[] clicks;
     private CameraPose start;
     private int next = -1;
-    private boolean cameraHeld;
     private Lap lastLap;
 
     LapRecorder(int steps)
@@ -35,28 +34,30 @@ final class LapRecorder
         {
             return Outcome.NONE;
         }
+        if (cameraSampled(camera))
+        {
+            return Outcome.CAMERA_MOVED;
+        }
         clicks[step] = click;
-        cameraHeld &= camera.viewKey().equals(start.viewKey());
         next++;
         if (next < steps)
         {
             return Outcome.NONE;
         }
         next = -1;
-        if (!cameraHeld)
-        {
-            return Outcome.CAMERA_MOVED;
-        }
         lastLap = new Lap(start, clicks.clone());
         return Outcome.COMPLETED;
     }
 
-    void cameraSampled(CameraPose camera)
+    /** @return true when this sample dropped the lap in progress */
+    boolean cameraSampled(CameraPose camera)
     {
-        if (next > 0)
+        if (next > 0 && !camera.viewKey().equals(start.viewKey()))
         {
-            cameraHeld &= camera.viewKey().equals(start.viewKey());
+            next = -1;
+            return true;
         }
+        return false;
     }
 
     Lap lastLap()
@@ -75,9 +76,10 @@ final class LapRecorder
         return next > 0;
     }
 
-    boolean cameraHeld()
+    /** The view the lap in progress started in. */
+    CameraPose startView()
     {
-        return next <= 0 || cameraHeld;
+        return start;
     }
 
     private void begin(Point2D.Double click, CameraPose camera)
@@ -85,7 +87,6 @@ final class LapRecorder
         clicks = new Point2D.Double[steps];
         clicks[0] = click;
         start = camera;
-        cameraHeld = true;
         next = 1;
     }
 

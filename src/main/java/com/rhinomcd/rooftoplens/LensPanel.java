@@ -59,7 +59,8 @@ final class LensPanel extends Overlay
         g.draw(new Line2D.Double(PAD, 44, WIDTH - PAD, 44));
 
         ViewBook book = plugin.getBook();
-        CameraPose goal = book.suggestion(camera);
+        boolean lapRunning = plugin.getRecorder().inProgress();
+        CameraPose goal = lapRunning ? plugin.getRecorder().startView() : book.suggestion(camera);
         boolean onGoal = camera.holds(goal);
         drawCompass(g, PAD + 26, 82, camera, goal, onGoal);
 
@@ -67,8 +68,8 @@ final class LensPanel extends Overlay
         boolean isBest = goal.viewKey().equals(book.bestKey());
         g.setFont(LABEL);
         g.setColor(onGoal ? LensPalette.TEAL : LensPalette.MUTED);
-        g.drawString(onGoal ? (isBest ? "ON BEST VIEW" : "ON TEST VIEW") : (isBest ? "BEST VIEW" : "TRY THIS VIEW"),
-            textX, 62);
+        g.drawString(lapRunning ? "LAP IN PROGRESS"
+            : onGoal ? (isBest ? "ON BEST VIEW" : "ON TEST VIEW") : (isBest ? "BEST VIEW" : "TRY THIS VIEW"), textX, 62);
         g.setFont(BODY);
         g.setColor(LensPalette.TEXT);
         g.drawString(onGoal ? "Hold the camera for a lap" : camera.directionsTo(goal), textX, 78);
@@ -84,15 +85,10 @@ final class LensPanel extends Overlay
         }
 
         String notice = plugin.getNotice();
-        if (notice == null && !plugin.getRecorder().cameraHeld())
-        {
-            notice = "Camera moved, this lap won't count";
-        }
         if (notice != null)
         {
-            boolean warning = plugin.isNoticeWarning() || !plugin.getRecorder().cameraHeld();
             g.setFont(LABEL);
-            g.setColor(warning ? LensPalette.CORAL : LensPalette.TEAL);
+            g.setColor(plugin.isNoticeWarning() ? LensPalette.CORAL : LensPalette.TEAL);
             g.drawString(notice.toUpperCase(), PAD, HEIGHT - 9);
         }
         return new Dimension(WIDTH, HEIGHT);

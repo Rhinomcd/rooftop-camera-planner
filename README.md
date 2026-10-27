@@ -14,8 +14,9 @@ local RuneLite config.
 1. Go to a rooftop course. The HUD card appears with the course name and one dot per obstacle.
 2. Follow the dial: it points the way to turn, and the text says how far. **Try this view** is a quarter turn you
    haven't lapped yet; **Best view** is your shortest route so far.
-3. Run a lap from the first obstacle to the last without touching the camera. The card shows
-   **Lap learned**. If the camera moved, it shows **Camera moved, lap not counted** and nothing is saved.
+3. Run a lap from the first obstacle to the last without touching the camera. While a lap runs, the card holds
+   the view you started in. A finished lap shows **Lap learned**. If the camera leaves that view, the card shows
+   **Camera moved, lap dropped**; the next lap starts when you click the first obstacle again.
 4. In any view you've lapped, the overlay draws your usual click spots joined in lap order, with a ring on the
    next one.
 

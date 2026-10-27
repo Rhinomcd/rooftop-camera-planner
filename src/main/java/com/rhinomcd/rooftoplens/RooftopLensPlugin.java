@@ -133,7 +133,10 @@ public class RooftopLensPlugin extends Plugin
             return;
         }
         camera = CameraPose.read(client);
-        recorder.cameraSampled(camera);
+        if (recorder.cameraSampled(camera))
+        {
+            showNotice("Camera moved, lap dropped", true);
+        }
     }
 
     @Subscribe
@@ -157,7 +160,7 @@ public class RooftopLensPlugin extends Plugin
                 showNotice("Lap learned", false);
                 break;
             case CAMERA_MOVED:
-                showNotice("Camera moved, lap not counted", true);
+                showNotice("Camera moved, lap dropped", true);
                 break;
             default:
                 break;

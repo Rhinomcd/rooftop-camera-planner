@@ -37,16 +37,26 @@ public class LapRecorderTest
     }
 
     @Test
-    public void cameraMovedMidLapIsNotCounted()
+    public void movingTheCameraDropsTheLap()
     {
         LapRecorder recorder = new LapRecorder(3);
         recorder.obstacleClicked(0, CLICK, VIEW);
         recorder.obstacleClicked(1, CLICK, VIEW);
-        recorder.cameraSampled(new CameraPose(900, 384, 256));
-        assertFalse(recorder.cameraHeld());
-        recorder.cameraSampled(VIEW);
-        assertEquals(LapRecorder.Outcome.CAMERA_MOVED, recorder.obstacleClicked(2, CLICK, VIEW));
-        assertTrue(recorder.cameraHeld());
+        assertTrue(recorder.cameraSampled(new CameraPose(900, 384, 256)));
+        assertFalse(recorder.inProgress());
+        assertFalse(recorder.cameraSampled(VIEW));
+        assertEquals(LapRecorder.Outcome.NONE, recorder.obstacleClicked(2, CLICK, VIEW));
+        assertEquals(LapRecorder.Outcome.NONE, recorder.obstacleClicked(0, CLICK, VIEW));
+        assertTrue(recorder.inProgress());
+    }
+
+    @Test
+    public void clickingFromAnotherViewDropsTheLap()
+    {
+        LapRecorder recorder = new LapRecorder(3);
+        recorder.obstacleClicked(0, CLICK, VIEW);
+        assertEquals(LapRecorder.Outcome.CAMERA_MOVED, recorder.obstacleClicked(1, CLICK, new CameraPose(900, 384, 256)));
+        assertFalse(recorder.inProgress());
     }
 
     @Test
@@ -67,7 +77,6 @@ public class LapRecorderTest
     {
         LapRecorder recorder = new LapRecorder(2);
         recorder.obstacleClicked(0, CLICK, new CameraPose(31, 384, 256));
-        recorder.cameraSampled(new CameraPose(55, 384, 256));
-        assertEquals(LapRecorder.Outcome.CAMERA_MOVED, recorder.obstacleClicked(1, CLICK, new CameraPose(31, 384, 256)));
+        assertTrue(recorder.cameraSampled(new CameraPose(55, 384, 256)));
     }
 }
