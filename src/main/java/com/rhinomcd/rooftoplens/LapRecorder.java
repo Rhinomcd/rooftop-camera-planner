@@ -80,11 +80,6 @@ final class LapRecorder
         return next <= 0 || cameraHeld;
     }
 
-    void reset()
-    {
-        next = -1;
-    }
-
     private void begin(Point2D.Double click, CameraPose camera)
     {
         clicks = new Point2D.Double[steps];

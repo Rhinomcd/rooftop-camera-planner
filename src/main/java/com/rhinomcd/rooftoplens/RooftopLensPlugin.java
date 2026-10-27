@@ -8,12 +8,15 @@ import java.awt.Rectangle;
 import java.awt.Shape;
 import java.awt.geom.Point2D;
 import java.lang.reflect.Type;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import javax.inject.Inject;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
+import net.runelite.api.MenuAction;
 import net.runelite.api.GameObject;
 import net.runelite.api.Point;
 import net.runelite.api.Tile;
@@ -46,6 +49,9 @@ public class RooftopLensPlugin extends Plugin
 {
     private static final Type VIEWS_TYPE = new TypeToken<LinkedHashMap<String, ViewBook.View>>() { }.getType();
     private static final int NOTICE_TICKS = 10;
+    private static final Set<MenuAction> OBSTACLE_ACTIONS = EnumSet.of(MenuAction.GAME_OBJECT_FIRST_OPTION,
+        MenuAction.GAME_OBJECT_SECOND_OPTION, MenuAction.GAME_OBJECT_THIRD_OPTION,
+        MenuAction.GAME_OBJECT_FOURTH_OPTION, MenuAction.GAME_OBJECT_FIFTH_OPTION);
 
     @Inject private Client client;
     @Inject private ClientThread clientThread;
@@ -109,7 +115,7 @@ public class RooftopLensPlugin extends Plugin
     @Subscribe
     public void onGameTick(GameTick event)
     {
-        if (course != null && obstacles.isEmpty() && !recorder.inProgress())
+        if (course != null && obstacles.isEmpty())
         {
             course = null;
         }
@@ -133,7 +139,7 @@ public class RooftopLensPlugin extends Plugin
     @Subscribe
     public void onMenuOptionClicked(MenuOptionClicked event)
     {
-        int step = course == null ? -1 : course.stepOf(event.getId());
+        int step = course == null || !OBSTACLE_ACTIONS.contains(event.getMenuAction()) ? -1 : course.stepOf(event.getId());
         if (step < 0)
         {
             return;
@@ -266,8 +272,10 @@ public class RooftopLensPlugin extends Plugin
             }
             views.forEach((key, view) ->
             {
-                if (view != null && view.clicks != null && view.clicks.size() == course.stepCount()
-                    && view.clicks.stream().allMatch(step -> step != null && !step.isEmpty()))
+                if (view != null && view.canvasWidth > 0 && view.canvasHeight > 0 && view.clicks != null
+                    && view.clicks.size() == course.stepCount()
+                    && view.clicks.stream().allMatch(step -> step != null && !step.isEmpty()
+                        && step.stream().allMatch(click -> click != null && click.length == 2)))
                 {
                     loaded.views.put(key, view);
                 }
