@@ -97,6 +97,11 @@ public class LensRecorderPlugin extends Plugin
         line.addProperty("pitch", client.getCameraPitchTarget());
         line.addProperty("resized", client.isResized());
         line.addProperty("zoom", client.getVarcIntValue(client.isResized() ? VarClientID.CAMERA_ZOOM_BIG : VarClientID.CAMERA_ZOOM_SMALL));
+        line.addProperty("scale", client.getScale());
+        line.addProperty("vx", client.getViewportXOffset());
+        line.addProperty("vy", client.getViewportYOffset());
+        line.addProperty("vw", client.getViewportWidth());
+        line.addProperty("vh", client.getViewportHeight());
         line.addProperty("cw", client.getCanvasWidth());
         line.addProperty("ch", client.getCanvasHeight());
         line.addProperty("plane", client.getTopLevelWorldView() == null ? 0 : client.getTopLevelWorldView().getPlane());

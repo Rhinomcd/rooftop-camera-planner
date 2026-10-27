@@ -36,6 +36,15 @@ public class ReplayTest
             String name = recording.getFileName().toString();
             assertEquals(name + " laps learned", expect.get("laps").getAsInt(), replay.lapsLearned());
             assertEquals(name + " laps dropped", expect.get("drops").getAsLong(), replay.noticesOf("Camera moved, lap dropped"));
+            if (expect.has("best"))
+            {
+                assertEquals(name + " best view", expect.get("best").getAsString(), replay.bestKey());
+                assertEquals(name + " next view", expect.get("next").getAsString(), replay.nextView());
+            }
+            if (expect.has("calibrated"))
+            {
+                assertEquals(name + " calibrated", expect.get("calibrated").getAsBoolean(), replay.calibrated());
+            }
         }
     }
 }

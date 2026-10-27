@@ -1,6 +1,5 @@
 package com.rhinomcd.rooftoplens;
 
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -81,10 +80,15 @@ final class Replay
         when(client.getGameState()).thenAnswer(call -> state);
         when(client.getCameraYawTarget()).thenAnswer(call -> intOf("yaw", 0));
         when(client.getCameraPitchTarget()).thenAnswer(call -> intOf("pitch", 0));
-        when(client.isResized()).thenAnswer(call -> !camera.has("resized") || camera.get("resized").getAsBoolean());
-        when(client.getVarcIntValue(anyInt())).thenAnswer(call -> intOf("zoom", 0));
         when(client.getCanvasWidth()).thenAnswer(call -> intOf("cw", 765));
         when(client.getCanvasHeight()).thenAnswer(call -> intOf("ch", 503));
+        // Recordings made before the recorder logged the projection take the whole canvas as the viewport and its
+        // height as the scale; the scene scales roughly with it.
+        when(client.getScale()).thenAnswer(call -> intOf("scale", intOf("ch", 503)));
+        when(client.getViewportXOffset()).thenAnswer(call -> intOf("vx", 0));
+        when(client.getViewportYOffset()).thenAnswer(call -> intOf("vy", 0));
+        when(client.getViewportWidth()).thenAnswer(call -> intOf("vw", intOf("cw", 765)));
+        when(client.getViewportHeight()).thenAnswer(call -> intOf("vh", intOf("ch", 503)));
         when(client.getMouseCanvasPosition()).thenAnswer(call -> new Point(mouseX, mouseY));
 
         plugin = new RooftopLensPlugin();
@@ -168,6 +172,23 @@ final class Replay
     {
         ViewBook book = plugin.getBook();
         return book == null ? 0 : book.views.values().stream().mapToInt(view -> view.laps).sum();
+    }
+
+    String bestKey()
+    {
+        return plugin.getBook() == null || plugin.getCamera() == null ? null : plugin.getBook().bestKey(plugin.getCamera());
+    }
+
+    String nextView()
+    {
+        return plugin.getBook() == null || plugin.getCamera() == null ? null : plugin.getBook().suggestion(plugin.getCamera()).viewKey();
+    }
+
+    /** Whether the card would show "Calibrated" for the camera at the end of the recording. */
+    boolean calibrated()
+    {
+        ViewBook book = plugin.getBook();
+        return book != null && plugin.getCamera() != null && book.calibrated(plugin.getCamera());
     }
 
     long noticesOf(String text)

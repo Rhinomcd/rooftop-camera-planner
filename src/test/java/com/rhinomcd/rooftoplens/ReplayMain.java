@@ -18,6 +18,7 @@ public class ReplayMain
         Replay replay = new Replay().run(recording, frames);
         System.out.println("course=" + replay.plugin.getCourse() + " lapsLearned=" + replay.lapsLearned()
             + " views=" + (replay.plugin.getBook() == null ? 0 : replay.plugin.getBook().views.keySet())
-            + " notices=" + replay.notices + " frames=" + frames);
+            + " best=" + replay.bestKey() + " next=" + replay.nextView()
+            + " calibrated=" + replay.calibrated() + " notices=" + replay.notices + " frames=" + frames);
     }
 }

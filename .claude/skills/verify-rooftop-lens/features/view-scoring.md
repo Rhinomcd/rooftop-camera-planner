@@ -1,12 +1,13 @@
 # View scoring
 
-Each saved view keeps the last 8 clicks per obstacle. Its score is the cyclic pixel distance through the median click spots. The card suggests untried quarter turns, then the best view, and views persist in the RuneLite config.
+A view is a snapped yaw and pitch. Each saved view keeps the last 8 clicks per obstacle, as offsets from the viewport center divided by `client.getScale()`, so window resizes and zoom don't change them. Its score is the median lap's cyclic distance through its clicks. Views are compared at the calibration pitch, the pitch of the latest lap. The card suggests untried quarter turns, then 45° and 22.5° either side of the best, then the best view, and says "Calibrated" once none are left. Views persist in the RuneLite config.
 
 ## Sub-features
 
 - `persist`: views are saved to `rooftopLens.views.<COURSE>` and reload after a restart.
-- `score`: "This view" and "Best" show route pixels.
-- `suggest`: untried quarter turns come first, then the best view.
+- `score`: "This view" and "Best" show the route in pixels at the current scale.
+- `suggest`: untried quarter turns come first, then the refinements around the best, then the best view.
+- `calibrated`: with no untried view left, the card says "Calibrated" on the best view and "Back to best view" off it.
 
 ## How to get to it (user POV)
 
@@ -21,3 +22,5 @@ Each saved view keeps the last 8 clicks per obstacle. Its score is the cyclic pi
 ## Gotchas
 
 - Pitch above 383 is saved as 383. Views saved at a higher pitch are skipped when loading.
+- Views saved before 1.0.0's `yaw:pitch` keys (`yaw:pitch:zoom`) are skipped when loading.
+- Recordings from before the recorder logged `scale` and the viewport replay with the canvas height as the scale, which is only approximate when the player zoomed.

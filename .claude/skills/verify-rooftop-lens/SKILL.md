@@ -36,7 +36,7 @@ The helper `.claude/skills/verify-rooftop-lens/lens.sh` wraps every step below. 
 
 **Replay:**
 
-- Run a recording and render a PNG frame after every obstacle click: `lens.sh replay [file.jsonl]`. The default is the newest recording. It prints `course= lapsLearned= views= notices= frames=<dir>`, and the frames land in `build/replay/<name>/NNN.png`.
+- Run a recording and render a PNG frame after every obstacle click: `lens.sh replay [file.jsonl]`. The default is the newest recording. It prints `course= lapsLearned= views= best= next= calibrated= notices= frames=<dir>`, and the frames land in `build/replay/<name>/NNN.png`.
 - Turn a live session into a regression fixture: `lens.sh promote <recording> <name> <expected laps> <expected drops> "<note>"`. Write the expectation from what the human saw happen, then run the tests.
 
 **Live:** ask the human to run laps. Say exactly what to do, for example "2 laps at Rellekka without touching the camera". Then observe:

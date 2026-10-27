@@ -1,10 +1,11 @@
 # Calibrator card
 
-The card at the top left shows the course, lap progress, and a viewfinder. The orange ring sits where the camera should point: left or right for rotation, up or down for tilt, and larger or smaller for zoom. On the view, the ring centers and turns green, and it stays green for the whole lap.
+The card at the top left shows the course, lap progress, and a viewfinder. The orange ring sits where the camera should point: left or right for rotation, up or down for tilt. On the view, the ring centers and turns green, and it stays green for the whole lap.
 
 ## Sub-features
 
-- `card-align`: "Try this view" or "Best view", with directions such as "Rotate right 90°".
+- `card-align`: "Try this view" or "Best view", with directions such as "Rotate right 90°" or "Tilt camera higher".
+- `card-done`: "Calibrated" and "Best view found" on the best view once the search is done.
 - `card-hold`: "Lap in progress" with a green, centered ring for the whole lap.
 - `card-stats`: "This view: N laps · X px" and "Best: X px".
 - `card-notice`: "Lap learned" in green, "Camera moved, lap dropped" in red.
