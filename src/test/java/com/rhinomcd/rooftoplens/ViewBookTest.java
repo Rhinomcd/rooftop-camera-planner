@@ -81,5 +81,28 @@ public class ViewBookTest
         book.record(lap(view, 0.1, 0.9), 1000, 800);
         book.record(lap(view, 0.4, 0.6), 500, 400);
         assertEquals(200, book.view(view).routePixels(), 1e-6);
+        assertEquals(1, book.view(view).keptLaps());
+    }
+
+    @Test
+    public void routeFollowsEachLapNotTheAverageSpot()
+    {
+        ViewBook book = new ViewBook(2);
+        CameraPose view = new CameraPose(0, 384, 256);
+        book.record(lap(view, 0.1, 0.9), 1000, 800);
+        book.record(lap(view, 0.5, 0.5), 1000, 800);
+        book.record(lap(view, 0.9, 0.1), 1000, 800);
+        assertEquals(1600, book.view(view).routePixels(), 1e-6);
+    }
+
+    @Test
+    public void resizingTheCanvasRestartsEveryViewsRoute()
+    {
+        ViewBook book = new ViewBook(2);
+        book.record(lap(new CameraPose(0, 384, 256), 0.45, 0.55), 1000, 800);
+        book.record(lap(new CameraPose(512, 384, 256), 0.4, 0.6), 500, 400);
+        assertEquals(0, book.view(new CameraPose(0, 384, 256)).keptLaps());
+        assertEquals("512:384:256", book.bestKey(new CameraPose(0, 384, 256)));
+        assertEquals("0:384:256", book.suggestion(new CameraPose(0, 384, 256)).viewKey());
     }
 }

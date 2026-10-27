@@ -75,7 +75,7 @@ final class LensPanel extends Overlay
         text(g, small, onGoal ? "Hold the camera" : camera.directionsTo(goal), TEXT_X, 49, Color.WHITE);
         ViewBook.View here = book.view(camera);
         text(g, small, here == null ? "This view: not learned"
-            : "This view: " + here.laps + (here.laps == 1 ? " lap" : " laps") + " · " + Math.round(here.routePixels()) + " px",
+            : "This view: " + here.keptLaps() + (here.keptLaps() == 1 ? " lap" : " laps") + " · " + Math.round(here.routePixels()) + " px",
             TEXT_X, 63, DIM);
         if (bestKey != null)
         {

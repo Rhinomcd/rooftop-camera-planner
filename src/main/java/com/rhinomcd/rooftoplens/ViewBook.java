@@ -29,11 +29,17 @@ final class ViewBook
 
     void record(LapRecorder.Lap lap, int canvasWidth, int canvasHeight)
     {
-        View view = views.computeIfAbsent(lap.camera.viewKey(), key -> new View(steps));
-        if (view.canvasWidth != canvasWidth || view.canvasHeight != canvasHeight)
+        for (View other : views.values())
         {
-            view.clicks.forEach(List::clear);
+            if (other.canvasWidth != canvasWidth || other.canvasHeight != canvasHeight)
+            {
+                // Routes measured on another canvas size can't be compared with this one.
+                other.clicks.forEach(List::clear);
+                other.canvasWidth = canvasWidth;
+                other.canvasHeight = canvasHeight;
+            }
         }
+        View view = views.computeIfAbsent(lap.camera.viewKey(), key -> new View(steps));
         view.laps++;
         view.canvasWidth = canvasWidth;
         view.canvasHeight = canvasHeight;
@@ -76,12 +82,12 @@ final class ViewBook
         return views.get(camera.viewKey());
     }
 
-    /** The shortest-route view at the camera's pitch and zoom, or null if none has a lap. */
+    /** The shortest-route view at the camera's pitch and zoom, or null if none has a kept lap. */
     String bestKey(CameraPose camera)
     {
         String level = level(camera);
         return views.entrySet().stream()
-            .filter(entry -> level(CameraPose.fromViewKey(entry.getKey())).equals(level))
+            .filter(entry -> entry.getValue().keptLaps() > 0 && level(CameraPose.fromViewKey(entry.getKey())).equals(level))
             .min(Comparator.comparingDouble(entry -> entry.getValue().routePixels()))
             .map(Map.Entry::getKey)
             .orElse(null);
@@ -94,16 +100,20 @@ final class ViewBook
     CameraPose suggestion(CameraPose current)
     {
         CameraPose untried = nearestUntried(current, QUARTER_TURNS);
+        if (untried != null)
+        {
+            return untried;
+        }
+        CameraPose best = CameraPose.fromViewKey(bestKey(current));
         for (int spread : REFINE_SPREADS)
         {
+            untried = nearestUntried(current, new int[] { best.yaw - spread, best.yaw + spread });
             if (untried != null)
             {
                 return untried;
             }
-            int best = CameraPose.fromViewKey(bestKey(current)).yaw;
-            untried = nearestUntried(current, new int[] { best - spread, best + spread });
         }
-        return untried != null ? untried : CameraPose.fromViewKey(bestKey(current));
+        return best;
     }
 
     private CameraPose nearestUntried(CameraPose current, int[] yaws)
@@ -112,7 +122,8 @@ final class ViewBook
         for (int yaw : yaws)
         {
             CameraPose probe = CameraPose.fromViewKey(new CameraPose(yaw, current.pitch, current.zoom).viewKey());
-            if (!views.containsKey(probe.viewKey())
+            View tried = views.get(probe.viewKey());
+            if ((tried == null || tried.keptLaps() == 0)
                 && (nearest == null || Math.abs(current.yawDelta(probe.yaw)) < Math.abs(current.yawDelta(nearest.yaw))))
             {
                 nearest = probe;
@@ -150,10 +161,16 @@ final class ViewBook
             return kept == null || kept.isEmpty() ? null : median(kept);
         }
 
+        /** Laps whose clicks still count toward the route. */
+        int keptLaps()
+        {
+            return clicks.stream().mapToInt(List::size).min().orElse(0);
+        }
+
         /** Median over recent laps of one lap's cyclic click-to-click distance, in pixels. */
         double routePixels()
         {
-            int laps = clicks.stream().mapToInt(List::size).min().orElse(0);
+            int laps = keptLaps();
             double[] routes = new double[laps];
             for (int lap = 0; lap < laps; lap++)
             {
