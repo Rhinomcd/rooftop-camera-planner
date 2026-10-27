@@ -8,6 +8,7 @@ import java.awt.Rectangle;
 import java.awt.Shape;
 import java.awt.geom.Point2D;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -285,7 +286,7 @@ public class RooftopLensPlugin extends Plugin
             }
             views.forEach((key, view) ->
             {
-                if (view != null && CameraPose.fromViewKey(key).withinStandardPitch() && view.canvasWidth > 0
+                if (view != null && reachableViewKey(key) && view.canvasWidth > 0
                     && view.canvasHeight > 0 && validSteps(view.clicks, course.stepCount(), false))
                 {
                     if (!validSteps(view.boxClicks, course.stepCount(), true))
@@ -301,6 +302,13 @@ public class RooftopLensPlugin extends Plugin
             // An unreadable record is discarded; the next clean lap starts a new one.
         }
         return loaded;
+    }
+
+    private static boolean reachableViewKey(String key)
+    {
+        String[] parts = key.split(":");
+        return parts.length == 3 && Arrays.stream(parts).allMatch(part -> part.matches("-?\\d+"))
+            && CameraPose.fromViewKey(key).withinStandardPitch();
     }
 
     private static boolean validSteps(List<List<double[]>> steps, int count, boolean emptyAllowed)
