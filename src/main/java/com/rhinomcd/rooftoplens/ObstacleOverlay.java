@@ -11,7 +11,6 @@ import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.Stroke;
 import java.awt.geom.Ellipse2D;
-import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.util.Map;
 import javax.inject.Inject;
@@ -25,8 +24,6 @@ final class ObstacleOverlay extends Overlay
 {
     private static final Stroke OUTLINE = new BasicStroke(1.5f);
     private static final Stroke NEXT_OUTLINE = new BasicStroke(2.5f);
-    private static final Stroke ROUTE = new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND,
-        1f, new float[] { 6f, 6f }, 0f);
     private static final Font BADGE_FONT = new Font(Font.SANS_SERIF, Font.BOLD, 11);
 
     private final Client client;
@@ -53,9 +50,11 @@ final class ObstacleOverlay extends Overlay
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         int next = plugin.getRecorder().nextStep();
         int plane = client.getTopLevelWorldView().getPlane();
+        ViewBook.View view = config.showRoute() && plugin.getCamera() != null ? plugin.getBook().view(plugin.getCamera()) : null;
         for (Map.Entry<TileObject, Integer> entry : plugin.getObstacles().entrySet())
         {
-            boolean isNext = entry.getValue() == next;
+            int step = entry.getValue();
+            boolean isNext = step == next;
             Shape clickbox = entry.getKey().getPlane() == plane ? entry.getKey().getClickbox() : null;
             if (clickbox == null || (!isNext && !config.showAll()))
             {
@@ -71,48 +70,26 @@ final class ObstacleOverlay extends Overlay
             g.setStroke(isNext ? NEXT_OUTLINE : OUTLINE);
             g.draw(clickbox);
             Rectangle bounds = clickbox.getBounds();
-            badge(g, entry.getValue() + 1, bounds.getCenterX(), bounds.getMinY() - 10, color, isNext);
-        }
-        if (config.showRoute())
-        {
-            drawRoute(g, next);
+            badge(g, step + 1, bounds.getCenterX(), bounds.getMinY() - 10, color, isNext);
+            Point2D.Double spot = view == null ? null : view.boxSpot(step);
+            if (spot != null)
+            {
+                drawSpot(g, bounds.x + spot.x * bounds.width, bounds.y + spot.y * bounds.height, color, isNext);
+            }
         }
         return null;
     }
 
-    private void drawRoute(Graphics2D g, int next)
+    /** Where you usually click this obstacle in this view. */
+    private static void drawSpot(Graphics2D g, double x, double y, Color color, boolean isNext)
     {
-        ViewBook.View view = plugin.getCamera() == null ? null : plugin.getBook().view(plugin.getCamera());
-        if (view == null)
+        g.setColor(color);
+        if (isNext)
         {
-            return;
+            g.setStroke(NEXT_OUTLINE);
+            g.draw(new Ellipse2D.Double(x - 7, y - 7, 14, 14));
         }
-        int width = client.getCanvasWidth();
-        int height = client.getCanvasHeight();
-        int steps = plugin.getCourse().stepCount();
-        Path2D.Double path = new Path2D.Double();
-        for (int step = 0; step <= steps; step++)
-        {
-            Point2D.Double spot = view.spot(step % steps);
-            if (step == 0)
-            {
-                path.moveTo(spot.x * width, spot.y * height);
-            }
-            else
-            {
-                path.lineTo(spot.x * width, spot.y * height);
-            }
-        }
-        g.setStroke(ROUTE);
-        g.setColor(LensPalette.alpha(config.routeColor(), 120));
-        g.draw(path);
-        Point2D.Double target = view.spot(next);
-        double x = target.x * width;
-        double y = target.y * height;
-        g.setStroke(NEXT_OUTLINE);
-        g.setColor(config.nextColor());
-        g.draw(new Ellipse2D.Double(x - 7, y - 7, 14, 14));
-        g.fill(new Ellipse2D.Double(x - 2, y - 2, 4, 4));
+        g.fill(new Ellipse2D.Double(x - 2.5, y - 2.5, 5, 5));
     }
 
     private static void badge(Graphics2D g, int number, double centerX, double centerY, Color color, boolean filled)

@@ -12,7 +12,7 @@ final class LapRecorder
     enum Outcome { NONE, COMPLETED, CAMERA_MOVED }
 
     private final int steps;
-    private Point2D.Double[] clicks;
+    private Click[] clicks;
     private CameraPose start;
     private int next = -1;
     private Lap lastLap;
@@ -22,8 +22,7 @@ final class LapRecorder
         this.steps = steps;
     }
 
-    /** @param click canvas position as a fraction of canvas width and height */
-    Outcome obstacleClicked(int step, Point2D.Double click, CameraPose camera)
+    Outcome obstacleClicked(int step, Click click, CameraPose camera)
     {
         if (step == 0 && next != 1)
         {
@@ -82,20 +81,34 @@ final class LapRecorder
         return start;
     }
 
-    private void begin(Point2D.Double click, CameraPose camera)
+    private void begin(Click click, CameraPose camera)
     {
-        clicks = new Point2D.Double[steps];
+        clicks = new Click[steps];
         clicks[0] = click;
         start = camera;
         next = 1;
     }
 
+    static final class Click
+    {
+        /** Position on the canvas, as fractions of its width and height. */
+        final Point2D.Double canvas;
+        /** Position inside the obstacle's clickbox bounds, as fractions; null when the box wasn't on screen. */
+        final Point2D.Double onBox;
+
+        Click(Point2D.Double canvas, Point2D.Double onBox)
+        {
+            this.canvas = canvas;
+            this.onBox = onBox;
+        }
+    }
+
     static final class Lap
     {
         final CameraPose camera;
-        final Point2D.Double[] clicks;
+        final Click[] clicks;
 
-        Lap(CameraPose camera, Point2D.Double[] clicks)
+        Lap(CameraPose camera, Click[] clicks)
         {
             this.camera = camera;
             this.clicks = clicks;

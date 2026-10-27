@@ -10,10 +10,10 @@ public class ViewBookTest
 {
     private static LapRecorder.Lap lap(CameraPose camera, double... xs)
     {
-        Point2D.Double[] clicks = new Point2D.Double[xs.length];
+        LapRecorder.Click[] clicks = new LapRecorder.Click[xs.length];
         for (int i = 0; i < xs.length; i++)
         {
-            clicks[i] = new Point2D.Double(xs[i], 0.5);
+            clicks[i] = new LapRecorder.Click(new Point2D.Double(xs[i], 0.5), i == 0 ? null : new Point2D.Double(0.25, 0.75));
         }
         return new LapRecorder.Lap(camera, clicks);
     }
@@ -30,6 +30,8 @@ public class ViewBookTest
         assertEquals(3, learned.laps);
         assertEquals(0.5, learned.spot(1).x, 1e-9);
         assertEquals(800, learned.routePixels(), 1e-6);
+        assertNull(learned.boxSpot(0));
+        assertEquals(0.75, learned.boxSpot(1).y, 1e-9);
     }
 
     @Test

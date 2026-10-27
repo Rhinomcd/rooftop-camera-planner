@@ -17,8 +17,8 @@ local RuneLite config.
 3. Run a lap from the first obstacle to the last without touching the camera. While a lap runs, the card holds
    the view you started in. A finished lap shows **Lap learned**. If the camera leaves that view, the card shows
    **Camera moved, lap dropped**; the next lap starts when you click the first obstacle again.
-4. In any view you've lapped, the overlay draws your usual click spots joined in lap order, with a ring on the
-   next one.
+4. In any view you've lapped, each obstacle shows a dot where you usually click it, with a ring on the next one.
+   The dot is placed on the obstacle's live clickbox, so it stays on the obstacle as the camera follows you.
 
 The next obstacle is filled amber. Other obstacles are outlined in teal with their step number.
 
@@ -26,10 +26,10 @@ The next obstacle is filled amber. Other obstacles are outlined in teal with the
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| Show learned route | on | Draw your click spots and route in views you've lapped |
+| Show click spots | on | Mark where you usually click each obstacle, in views you've lapped |
 | Outline every obstacle | on | Outline all visible obstacles, not only the next one |
 | Next obstacle | amber | Color of the obstacle to click next |
-| Route | teal | Color of other obstacles and the learned route |
+| Other obstacles | teal | Color of other obstacles and their click spots |
 
 ## Courses
 

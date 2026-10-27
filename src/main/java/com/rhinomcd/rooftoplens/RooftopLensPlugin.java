@@ -11,6 +11,7 @@ import java.lang.reflect.Type;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.inject.Inject;
@@ -151,7 +152,7 @@ public class RooftopLensPlugin extends Plugin
         {
             return;
         }
-        Point2D.Double click = clickPoint(event.getId());
+        LapRecorder.Click click = clickPoint(event.getId());
         if (click == null)
         {
             return;
@@ -235,8 +236,8 @@ public class RooftopLensPlugin extends Plugin
         obstacles.put(object, owner.stepOf(object.getId()));
     }
 
-    /** The click as canvas fractions: the mouse when it is on the obstacle, else the obstacle's center. */
-    private Point2D.Double clickPoint(int objectId)
+    /** The mouse when it is on the obstacle, else the obstacle's center. */
+    private LapRecorder.Click clickPoint(int objectId)
     {
         Point mouse = client.getMouseCanvasPosition();
         Shape clickbox = obstacles.keySet().stream()
@@ -245,11 +246,11 @@ public class RooftopLensPlugin extends Plugin
             .filter(shape -> shape != null)
             .findFirst()
             .orElse(null);
+        Rectangle bounds = clickbox == null ? null : clickbox.getBounds();
         double x;
         double y;
         if (clickbox != null && (mouse == null || !clickbox.contains(mouse.getX(), mouse.getY())))
         {
-            Rectangle bounds = clickbox.getBounds();
             x = bounds.getCenterX();
             y = bounds.getCenterY();
         }
@@ -262,7 +263,9 @@ public class RooftopLensPlugin extends Plugin
         {
             return null;
         }
-        return new Point2D.Double(x / client.getCanvasWidth(), y / client.getCanvasHeight());
+        Point2D.Double onBox = bounds == null || bounds.width == 0 || bounds.height == 0 ? null
+            : new Point2D.Double((x - bounds.x) / bounds.width, (y - bounds.y) / bounds.height);
+        return new LapRecorder.Click(new Point2D.Double(x / client.getCanvasWidth(), y / client.getCanvasHeight()), onBox);
     }
 
     private ViewBook loadBook(Course course)
@@ -282,11 +285,13 @@ public class RooftopLensPlugin extends Plugin
             }
             views.forEach((key, view) ->
             {
-                if (view != null && CameraPose.fromViewKey(key).withinStandardPitch() && view.canvasWidth > 0 && view.canvasHeight > 0 && view.clicks != null
-                    && view.clicks.size() == course.stepCount()
-                    && view.clicks.stream().allMatch(step -> step != null && !step.isEmpty()
-                        && step.stream().allMatch(click -> click != null && click.length == 2)))
+                if (view != null && CameraPose.fromViewKey(key).withinStandardPitch() && view.canvasWidth > 0
+                    && view.canvasHeight > 0 && validSteps(view.clicks, course.stepCount(), false))
                 {
+                    if (!validSteps(view.boxClicks, course.stepCount(), true))
+                    {
+                        view.boxClicks = null;
+                    }
                     loaded.views.put(key, view);
                 }
             });
@@ -296,6 +301,12 @@ public class RooftopLensPlugin extends Plugin
             // An unreadable record is discarded; the next clean lap starts a new one.
         }
         return loaded;
+    }
+
+    private static boolean validSteps(List<List<double[]>> steps, int count, boolean emptyAllowed)
+    {
+        return steps != null && steps.size() == count && steps.stream().allMatch(step -> step != null
+            && (emptyAllowed || !step.isEmpty()) && step.stream().allMatch(click -> click != null && click.length == 2));
     }
 
     private void lapDropped(CameraPose start, CameraPose now)

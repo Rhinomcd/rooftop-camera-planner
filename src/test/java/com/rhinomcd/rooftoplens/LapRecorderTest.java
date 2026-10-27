@@ -10,7 +10,12 @@ import static org.junit.Assert.assertTrue;
 public class LapRecorderTest
 {
     private static final CameraPose VIEW = new CameraPose(512, 384, 256);
-    private static final Point2D.Double CLICK = new Point2D.Double(0.5, 0.5);
+    private static final LapRecorder.Click CLICK = click(0.5);
+
+    private static LapRecorder.Click click(double x)
+    {
+        return new LapRecorder.Click(new Point2D.Double(x, x), null);
+    }
 
     @Test
     public void completesAfterEveryStepInOrder()
@@ -19,8 +24,8 @@ public class LapRecorderTest
         assertEquals(LapRecorder.Outcome.NONE, recorder.obstacleClicked(0, CLICK, VIEW));
         assertEquals(LapRecorder.Outcome.NONE, recorder.obstacleClicked(1, CLICK, VIEW));
         assertEquals(2, recorder.nextStep());
-        assertEquals(LapRecorder.Outcome.COMPLETED, recorder.obstacleClicked(2, new Point2D.Double(0.9, 0.1), VIEW));
-        assertEquals(0.9, recorder.lastLap().clicks[2].x, 0);
+        assertEquals(LapRecorder.Outcome.COMPLETED, recorder.obstacleClicked(2, click(0.9), VIEW));
+        assertEquals(0.9, recorder.lastLap().clicks[2].canvas.x, 0);
         assertFalse(recorder.inProgress());
     }
 
@@ -29,11 +34,11 @@ public class LapRecorderTest
     {
         LapRecorder recorder = new LapRecorder(3);
         recorder.obstacleClicked(0, CLICK, VIEW);
-        recorder.obstacleClicked(0, new Point2D.Double(0.1, 0.1), VIEW);
+        recorder.obstacleClicked(0, click(0.1), VIEW);
         recorder.obstacleClicked(2, CLICK, VIEW);
         recorder.obstacleClicked(1, CLICK, VIEW);
         assertEquals(LapRecorder.Outcome.COMPLETED, recorder.obstacleClicked(2, CLICK, VIEW));
-        assertEquals(0.5, recorder.lastLap().clicks[0].x, 0);
+        assertEquals(0.5, recorder.lastLap().clicks[0].canvas.x, 0);
     }
 
     @Test

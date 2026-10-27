@@ -30,15 +30,38 @@ final class ViewBook
         view.laps++;
         view.canvasWidth = canvasWidth;
         view.canvasHeight = canvasHeight;
+        if (view.boxClicks == null)
+        {
+            view.boxClicks = emptySteps(steps);
+        }
         for (int step = 0; step < steps; step++)
         {
-            List<double[]> kept = view.clicks.get(step);
-            kept.add(new double[] { lap.clicks[step].x, lap.clicks[step].y });
-            if (kept.size() > CLICKS_KEPT)
+            LapRecorder.Click click = lap.clicks[step];
+            keep(view.clicks.get(step), click.canvas);
+            if (click.onBox != null)
             {
-                kept.remove(0);
+                keep(view.boxClicks.get(step), click.onBox);
             }
         }
+    }
+
+    private static void keep(List<double[]> kept, Point2D.Double point)
+    {
+        kept.add(new double[] { point.x, point.y });
+        if (kept.size() > CLICKS_KEPT)
+        {
+            kept.remove(0);
+        }
+    }
+
+    private static List<List<double[]>> emptySteps(int steps)
+    {
+        List<List<double[]>> lists = new ArrayList<>(steps);
+        for (int i = 0; i < steps; i++)
+        {
+            lists.add(new ArrayList<>());
+        }
+        return lists;
     }
 
     View view(CameraPose camera)
@@ -83,23 +106,28 @@ final class ViewBook
         int laps;
         int canvasWidth;
         int canvasHeight;
-        /** Per step, the most recent clean-lap clicks as canvas fractions {x, y}. */
+        /** Per step, the most recent clean-lap clicks as canvas fractions {x, y}. Scores the view. */
         final List<List<double[]>> clicks;
+        /** Per step, the same clicks as fractions of the obstacle's clickbox bounds. Placed on the live obstacle. */
+        List<List<double[]>> boxClicks;
 
         View(int steps)
         {
-            clicks = new ArrayList<>(steps);
-            for (int i = 0; i < steps; i++)
-            {
-                clicks.add(new ArrayList<>());
-            }
+            clicks = emptySteps(steps);
+            boxClicks = emptySteps(steps);
         }
 
         /** Median click per step, as canvas fractions. */
         Point2D.Double spot(int step)
         {
-            List<double[]> kept = clicks.get(step);
-            return new Point2D.Double(median(kept, 0), median(kept, 1));
+            return median(clicks.get(step));
+        }
+
+        /** Median click per step inside the obstacle's clickbox bounds, or null if none was recorded. */
+        Point2D.Double boxSpot(int step)
+        {
+            List<double[]> kept = boxClicks == null ? null : boxClicks.get(step);
+            return kept == null || kept.isEmpty() ? null : median(kept);
         }
 
         double routePixels()
@@ -112,6 +140,11 @@ final class ViewBook
                 total += Math.hypot((to.x - from.x) * canvasWidth, (to.y - from.y) * canvasHeight);
             }
             return total;
+        }
+
+        private static Point2D.Double median(List<double[]> kept)
+        {
+            return new Point2D.Double(median(kept, 0), median(kept, 1));
         }
 
         private static double median(List<double[]> values, int axis)

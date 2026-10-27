@@ -11,8 +11,8 @@ public interface RooftopLensConfig extends Config
 {
     String GROUP = "rooftopLens";
 
-    @ConfigItem(keyName = "showRoute", name = "Show learned route", position = 1,
-        description = "In a view you have lapped before, draw your usual click spots joined in lap order")
+    @ConfigItem(keyName = "showRoute", name = "Show click spots", position = 1,
+        description = "In a view you have lapped before, mark where you usually click each obstacle")
     default boolean showRoute()
     {
         return true;
@@ -34,8 +34,8 @@ public interface RooftopLensConfig extends Config
     }
 
     @Alpha
-    @ConfigItem(keyName = "routeColor", name = "Route", position = 4,
-        description = "Color of other obstacles and the learned route")
+    @ConfigItem(keyName = "routeColor", name = "Other obstacles", position = 4,
+        description = "Color of other obstacles and their click spots")
     default Color routeColor()
     {
         return LensPalette.TEAL;
