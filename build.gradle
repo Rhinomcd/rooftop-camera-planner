@@ -9,7 +9,7 @@ repositories {
 }
 
 def runeLiteVersion = 'latest.release'
-def pluginMainClass = 'com.mvpitsolutions.rooftopcamera.RooftopCameraPluginTest'
+def pluginMainClass = 'com.rhinomcd.rooftoplens.RooftopLensPluginTest'
 
 dependencies {
     compileOnly group: 'net.runelite', name: 'client', version: runeLiteVersion
@@ -18,8 +18,8 @@ dependencies {
     testImplementation group: 'net.runelite', name: 'jshell', version: runeLiteVersion
 }
 
-group = 'com.mvpitsolutions.rooftopcamera'
-version = '0.1.2'
+group = 'com.rhinomcd.rooftoplens'
+version = '1.0.0'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_11

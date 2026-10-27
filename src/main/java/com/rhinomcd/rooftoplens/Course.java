@@ -1,36 +1,36 @@
-package com.mvpitsolutions.rooftopcamera;
+package com.rhinomcd.rooftoplens;
 
 import java.util.Arrays;
 import net.runelite.api.gameval.ObjectID;
 
-enum RooftopCourse
+enum Course
 {
-    DRAYNOR("Draynor Village", 12338, new int[] {
+    DRAYNOR("Draynor Village", new int[] {
         ObjectID.ROOFTOPS_DRAYNOR_WALLCLIMB, ObjectID.ROOFTOPS_DRAYNOR_TIGHTROPE_1,
         ObjectID.ROOFTOPS_DRAYNOR_TIGHTROPE_2, ObjectID.ROOFTOPS_DRAYNOR_WALLCROSSING,
         ObjectID.ROOFTOPS_DRAYNOR_WALLSCRAMBLE, ObjectID.ROOFTOPS_DRAYNOR_LEAPDOWN,
         ObjectID.ROOFTOPS_DRAYNOR_CRATE
     }),
-    AL_KHARID("Al Kharid", 13105, new int[] {
+    AL_KHARID("Al Kharid", new int[] {
         ObjectID.ROOFTOPS_KHARID_WALLCLIMB, ObjectID.ROOFTOPS_KHARID_TIGHTROPE_1,
         ObjectID.ROOFTOPS_KHARID_ROPE_SWING, ObjectID.ROOFTOPS_KHARID_SLIDE_SIDE,
         ObjectID.ROOFTOPS_KHARID_BAMBOO_TREE_TOP, ObjectID.ROOFTOPS_KHARID_WALLCLIMB_2,
         ObjectID.ROOFTOPS_KHARID_TIGHTROPE_4, ObjectID.ROOFTOPS_KHARID_LEAPDOWN
     }),
-    VARROCK("Varrock", 12853, new int[] {
+    VARROCK("Varrock", new int[] {
         ObjectID.ROOFTOPS_VARROCK_WALLCLIMB, ObjectID.ROOFTOPS_VARROCK_CLOTHESLINE,
         ObjectID.ROOFTOPS_VARROCK_LEAPTORUINS, ObjectID.ROOFTOPS_VARROCK_WALLSWING,
         ObjectID.ROOFTOPS_VARROCK_WALLSCRAMBLE, ObjectID.ROOFTOPS_VARROCK_LEAPTOBALCONY,
         ObjectID.ROOFTOPS_VARROCK_LEAPDOWN, ObjectID.ROOFTOPS_VARROCK_STEPUPROOF,
         ObjectID.ROOFTOPS_VARROCK_FINISH
     }),
-    CANIFIS("Canifis", 13878, new int[] {
+    CANIFIS("Canifis", new int[] {
         ObjectID.ROOFTOPS_CANIFIS_START_TREE, ObjectID.ROOFTOPS_CANIFIS_JUMP,
         ObjectID.ROOFTOPS_CANIFIS_JUMP_2, ObjectID.ROOFTOPS_CANIFIS_JUMP_5,
         ObjectID.ROOFTOPS_CANIFIS_JUMP_3, ObjectID.ROOFTOPS_CANIFIS_POLEVAULT,
         ObjectID.ROOFTOPS_CANIFIS_JUMP_4, ObjectID.ROOFTOPS_CANIFIS_LEAPDOWN
     }),
-    FALADOR("Falador", 12084, new int[][] {
+    FALADOR("Falador", new int[][] {
         { ObjectID.ROOFTOPS_FALADOR_WALLCLIMB }, { ObjectID.ROOFTOPS_FALADOR_TIGHTROPE_1 },
         { ObjectID.ROOFTOPS_FALADOR_HANDHOLDS_START }, { ObjectID.ROOFTOPS_FALADOR_GAP_1 },
         { ObjectID.ROOFTOPS_FALADOR_GAP_2 }, { ObjectID.ROOFTOPS_FALADOR_TIGHTROPE_2 },
@@ -39,25 +39,25 @@ enum RooftopCourse
         { ObjectID.ROOFTOPS_FALADOR_LEDGE_3A, ObjectID.ROOFTOPS_FALADOR_LEDGE_3B },
         { ObjectID.ROOFTOPS_FALADOR_LEDGE_4 }, { ObjectID.ROOFTOPS_FALADOR_EDGE }
     }),
-    SEERS("Seers' Village", 10806, new int[] {
+    SEERS("Seers' Village", new int[] {
         ObjectID.ROOFTOPS_SEERS_WALLCLIMB, ObjectID.ROOFTOPS_SEERS_JUMP,
         ObjectID.ROOFTOPS_SEERS_TIGHTROPE, ObjectID.ROOFTOPS_SEERS_JUMP_1,
         ObjectID.ROOFTOPS_SEERS_JUMP_2, ObjectID.ROOFTOPS_SEERS_LEAPDOWN
     }),
-    POLLNIVNEACH("Pollnivneach", 13358, new int[] {
+    POLLNIVNEACH("Pollnivneach", new int[] {
         ObjectID.ROOFTOPS_POLLNIVNEACH_BASKET, ObjectID.ROOFTOPS_POLLNIVNEACH_MARKETSTALL,
         ObjectID.ROOFTOPS_POLLNIVNEACH_HANGINGBANNER, ObjectID.ROOFTOPS_POLLNIVNEACH_GAP,
         ObjectID.ROOFTOPS_POLLNIVNEACH_TREE, ObjectID.ROOFTOPS_POLLNIVNEACH_WALLCLIMB,
         ObjectID.ROOFTOPS_POLLNIVNEACH_MONKEYBARS_START, ObjectID.ROOFTOPS_POLLNIVNEACH_TREETOP,
         ObjectID.ROOFTOPS_POLLNIVNEACH_LINE
     }),
-    RELLEKKA("Rellekka", 10553, new int[] {
+    RELLEKKA("Rellekka", new int[] {
         ObjectID.ROOFTOPS_RELLEKKA_WALLCLIMB, ObjectID.ROOFTOPS_RELLEKKA_GAP_1,
         ObjectID.ROOFTOPS_RELLEKKA_TIGHTROPE_1, ObjectID.ROOFTOPS_RELLEKKA_GAP_2,
         ObjectID.ROOFTOPS_RELLEKKA_GAP_3, ObjectID.ROOFTOPS_RELLEKKA_TIGHTROPE_3,
         ObjectID.ROOFTOPS_RELLEKKA_DROPOFF
     }),
-    ARDOUGNE("Ardougne", 10547, new int[] {
+    ARDOUGNE("Ardougne", new int[] {
         ObjectID.ROOFTOPS_ARDY_WALLCLIMB, ObjectID.ROOFTOPS_ARDY_JUMP,
         ObjectID.ROOFTOPS_ARDY_PLANK, ObjectID.ROOFTOPS_ARDY_JUMP_2,
         ObjectID.ROOFTOPS_ARDY_JUMP_3, ObjectID.ROOFTOPS_ARDY_WALLCROSSING,
@@ -65,53 +65,42 @@ enum RooftopCourse
     });
 
     final String displayName;
-    final int regionId;
-    final int[] obstacles;
-    private final int[][] obstacleSteps;
+    private final int[][] steps;
 
-    RooftopCourse(String displayName, int regionId, int[] obstacles)
+    Course(String displayName, int[] obstacles)
     {
-        this(displayName, regionId, Arrays.stream(obstacles).mapToObj(id -> new int[] { id }).toArray(int[][]::new));
+        this(displayName, Arrays.stream(obstacles).mapToObj(id -> new int[] { id }).toArray(int[][]::new));
     }
 
-    RooftopCourse(String displayName, int regionId, int[][] obstacleSteps)
+    Course(String displayName, int[][] steps)
     {
         this.displayName = displayName;
-        this.regionId = regionId;
-        this.obstacleSteps = obstacleSteps;
-        this.obstacles = Arrays.stream(obstacleSteps).flatMapToInt(Arrays::stream).toArray();
+        this.steps = steps;
     }
 
-    boolean contains(int id)
+    /** Index of the step this object belongs to, or -1. Alternate objects (Falador's ledges) share a step. */
+    int stepOf(int objectId)
     {
-        return Arrays.stream(obstacles).anyMatch(value -> value == id);
-    }
-
-    int indexOf(int id)
-    {
-        for (int i = 0; i < obstacleSteps.length; i++)
+        for (int i = 0; i < steps.length; i++)
         {
-            if (Arrays.stream(obstacleSteps[i]).anyMatch(value -> value == id))
+            for (int id : steps[i])
             {
-                return i;
+                if (id == objectId)
+                {
+                    return i;
+                }
             }
         }
         return -1;
     }
 
-    int nextAfter(int id)
+    int stepCount()
     {
-        int index = indexOf(id);
-        return obstacleSteps[index < 0 ? 0 : (index + 1) % obstacleSteps.length][0];
+        return steps.length;
     }
 
-    int routeSize()
+    static Course withObstacle(int objectId)
     {
-        return obstacleSteps.length;
-    }
-
-    static RooftopCourse forRegion(int regionId)
-    {
-        return Arrays.stream(values()).filter(course -> course.regionId == regionId).findFirst().orElse(null);
+        return Arrays.stream(values()).filter(course -> course.stepOf(objectId) >= 0).findFirst().orElse(null);
     }
 }

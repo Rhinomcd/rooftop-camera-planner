@@ -1,13 +1,13 @@
-package com.mvpitsolutions.rooftopcamera;
+package com.rhinomcd.rooftoplens;
 
 import net.runelite.client.RuneLite;
 import net.runelite.client.externalplugins.ExternalPluginManager;
 
-public class RooftopCameraPluginTest
+public class RooftopLensPluginTest
 {
     public static void main(String[] args) throws Exception
     {
-        ExternalPluginManager.loadBuiltin(RooftopCameraPlugin.class);
+        ExternalPluginManager.loadBuiltin(RooftopLensPlugin.class);
         RuneLite.main(args);
     }
 }
