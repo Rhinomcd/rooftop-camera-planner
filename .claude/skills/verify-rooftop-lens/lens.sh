@@ -43,6 +43,8 @@ case "${1:-}" in
   screenshot)
     client_pid >/dev/null || { echo "no client"; exit 1; }
     snaps="$HOME/.runelite/rooftop-lens/snaps"
+    mkdir -p "$snaps" "$RUN_DIR/evidence"
+    mkdir -p "$snaps" "$RUN_DIR/evidence"
     before=$(ls "$snaps" 2>/dev/null | wc -l)
     touch "$HOME/.runelite/rooftop-lens/snap-request"
     for _ in $(seq 1 20); do
