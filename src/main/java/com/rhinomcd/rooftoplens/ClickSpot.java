@@ -12,12 +12,20 @@ import net.runelite.api.coords.LocalPoint;
  * Where an obstacle appears on screen when the player clicks it, kept as the camera's position relative to the
  * obstacle. The camera follows the player by moving without turning, and moving the camera by some offset moves the
  * scene by minus that offset, so projecting the current camera position minus the learned offset puts the obstacle
- * where it will be at click time, still on screen for as long as yaw, pitch and zoom hold.
+ * where it will be at click time, still on screen for as long as yaw, pitch and zoom hold. The camera's orbit
+ * around the player depends on its pitch, which a view snaps and caps, so each offset keeps the pitch it was learned
+ * at and only offsets near the current pitch are used.
  */
 final class ClickSpot
 {
-    /** Camera minus obstacle {x, y, z} in local units, then clickbox center minus obstacle base {x, y} in {@link Lens} units. */
-    static final int OFFSET_AXES = 5;
+    /**
+     * Camera minus obstacle {x, y, z} in local units, clickbox center minus obstacle base {x, y} in {@link Lens}
+     * units, then the camera's uncapped pitch in JAU11.
+     */
+    static final int OFFSET_AXES = 6;
+    static final int PITCH_AXIS = 5;
+    /** About 1.4 degrees; further than this the orbit moves the spot by more than a click's worth. */
+    static final int PITCH_TOLERANCE = 8;
 
     private ClickSpot()
     {
@@ -34,7 +42,7 @@ final class ClickSpot
             return null;
         }
         return new double[] { cameraX(client) - at.getX(), cameraY(client) - at.getY(), cameraZ(client) - obstacle.getZ(),
-            (clickbox.getCenterX() - base.getX()) / scale, (clickbox.getCenterY() - base.getY()) / scale };
+            (clickbox.getCenterX() - base.getX()) / scale, (clickbox.getCenterY() - base.getY()) / scale, pitch(client) };
     }
 
     /** @return null when the spot is off screen */
@@ -48,6 +56,11 @@ final class ClickSpot
         }
         double scale = client.getScale();
         return new Point2D.Double(base.getX() + offset[3] * scale, base.getY() + offset[4] * scale);
+    }
+
+    static int pitch(Client client)
+    {
+        return client.getCameraPitchTarget() >> 3;
     }
 
     /** The camera position {@link Perspective} projects from. */

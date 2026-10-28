@@ -30,7 +30,7 @@ local RuneLite config.
 4. After a lap, the screen shows where each obstacle will be when you usually click it: a ring on the next one,
    and a dashed line to the one after. The ring stays fixed on screen while the camera follows you, so you can
    move the mouse there during the animation. It's amber while the current obstacle runs and turns green when its
-   XP lands and your click will count. Spots are learned per course, so they work in every view, pitch, zoom and
+   XP lands and your click will count. Spots are learned per view and camera pitch, and hold at any zoom and
    window size.
 
 The next obstacle is filled amber. Other obstacles are outlined in teal with their step number.

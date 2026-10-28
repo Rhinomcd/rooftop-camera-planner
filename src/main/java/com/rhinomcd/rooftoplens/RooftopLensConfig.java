@@ -12,7 +12,7 @@ public interface RooftopLensConfig extends Config
     String GROUP = "rooftopLens";
 
     @ConfigItem(keyName = "showRoute", name = "Show click spots", position = 1,
-        description = "In a view you have lapped before, mark the screen spot where you usually click each obstacle, so the mouse can wait there")
+        description = "In a view you have lapped before, mark where each obstacle will be when you usually click it, so the mouse can wait there")
     default boolean showRoute()
     {
         return true;

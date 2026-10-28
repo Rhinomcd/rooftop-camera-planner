@@ -15,7 +15,7 @@ public class ViewBookTest
         LapRecorder.Click[] clicks = new LapRecorder.Click[xs.length];
         for (int i = 0; i < xs.length; i++)
         {
-            clicks[i] = new LapRecorder.Click(new Point2D.Double(xs[i], 0.5), i == 0 ? null : new double[] { xs[i] * 100, 0, -50, 0, 0 });
+            clicks[i] = new LapRecorder.Click(new Point2D.Double(xs[i], 0.5), i == 0 ? null : new double[] { xs[i] * 100, 0, -50, 0, 0, 423 });
         }
         return new LapRecorder.Lap(camera, clicks);
     }
@@ -37,11 +37,12 @@ public class ViewBookTest
         book.record(lap(view, 0.1, 0.5));
         book.record(lap(view, 0.1, 0.9));
         ViewBook.View learned = book.view(view);
-        assertEquals(3, learned.laps);
+        assertEquals(3, learned.keptLaps());
         assertEquals(0.8, learned.route(), 1e-9);
-        assertNull(book.cameraOffset(0));
-        assertEquals(50, book.cameraOffset(1)[0], 1e-9);
-        assertEquals(-50, book.cameraOffset(1)[2], 1e-9);
+        assertNull(learned.cameraOffset(0, 423));
+        assertEquals(50, learned.cameraOffset(1, 423)[0], 1e-9);
+        assertEquals(-50, learned.cameraOffset(1, 430)[2], 1e-9);
+        assertNull(learned.cameraOffset(1, 480));
     }
 
     @Test

@@ -71,6 +71,41 @@ public class LapRecorderTest
     }
 
     @Test
+    public void chainedEarlyClicksTheGameTookCompleteTheLap()
+    {
+        LapRecorder recorder = new LapRecorder(4);
+        recorder.obstacleClicked(0, CLICK, VIEW);
+        recorder.obstacleClicked(1, click(0.1), VIEW);
+        recorder.agilityXpGained();
+        recorder.obstacleClicked(2, click(0.2), VIEW);
+        assertEquals(2, recorder.nextStep());
+        recorder.agilityXpGained();
+        recorder.obstacleClicked(3, click(0.3), VIEW);
+        recorder.agilityXpGained();
+        assertEquals(LapRecorder.Outcome.COMPLETED, recorder.agilityXpGained());
+        assertEquals(0.1, recorder.lastLap().clicks[1].lens.x, 0);
+        assertEquals(0.3, recorder.lastLap().clicks[3].lens.x, 0);
+    }
+
+    @Test
+    public void preClickingTheFirstObstacleDuringTheLastKeepsTheLap()
+    {
+        LapRecorder recorder = new LapRecorder(2);
+        cross(recorder, 0, CLICK, VIEW);
+        recorder.obstacleClicked(1, CLICK, VIEW);
+        recorder.obstacleClicked(0, click(0.4), VIEW);
+        assertEquals(LapRecorder.Outcome.COMPLETED, recorder.agilityXpGained());
+        assertTrue(recorder.ready());
+        recorder.agilityXpGained();
+        assertEquals(1, recorder.nextStep());
+        assertTrue(recorder.ready());
+        recorder.obstacleClicked(1, CLICK, VIEW);
+        assertFalse(recorder.ready());
+        assertEquals(LapRecorder.Outcome.COMPLETED, recorder.agilityXpGained());
+        assertEquals(0.4, recorder.lastLap().clicks[0].lens.x, 0);
+    }
+
+    @Test
     public void ignoresMisclicksAndRepeatClicks()
     {
         LapRecorder recorder = new LapRecorder(3);

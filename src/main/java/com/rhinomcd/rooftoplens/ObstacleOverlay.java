@@ -119,7 +119,8 @@ final class ObstacleOverlay extends Overlay
 
     private Point2D.Double screenSpot(int step)
     {
-        double[] offset = plugin.getBook().cameraOffset(step);
+        ViewBook.View view = plugin.getCamera() == null ? null : plugin.getBook().view(plugin.getCamera());
+        double[] offset = view == null ? null : view.cameraOffset(step, ClickSpot.pitch(client));
         return offset == null ? null : ClickSpot.onScreen(client, offset);
     }
 

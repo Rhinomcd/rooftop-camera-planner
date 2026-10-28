@@ -53,7 +53,6 @@ import org.slf4j.LoggerFactory;
 )
 public class RooftopLensPlugin extends Plugin
 {
-    private static final Type OFFSETS_TYPE = new TypeToken<List<List<double[]>>>() { }.getType();
     private static final Type VIEWS_TYPE = new TypeToken<LinkedHashMap<String, ViewBook.View>>() { }.getType();
     private static final Logger log = LoggerFactory.getLogger(RooftopLensPlugin.class);
     private static final int NOTICE_TICKS = 10;
@@ -188,7 +187,6 @@ public class RooftopLensPlugin extends Plugin
         {
             book.record(recorder.lastLap());
             configManager.setConfiguration(RooftopLensConfig.GROUP, viewsKey(course), gson.toJson(book.views));
-            configManager.setConfiguration(RooftopLensConfig.GROUP, spotsKey(course), gson.toJson(book.cameraOffsets));
             log.info("Lap learned on {} in view {}", course, recorder.lastLap().camera.viewKey());
             showNotice("Lap learned", false);
         }
@@ -209,6 +207,7 @@ public class RooftopLensPlugin extends Plugin
         {
             return;
         }
+        agilityXp = client.getSkillExperience(Skill.AGILITY);
         for (Tile[][] plane : client.getTopLevelWorldView().getScene().getTiles())
         {
             for (Tile[] row : plane)
@@ -287,7 +286,6 @@ public class RooftopLensPlugin extends Plugin
     private ViewBook loadBook(Course course)
     {
         ViewBook loaded = new ViewBook(course.stepCount());
-        loadCameraOffsets(loaded, course);
         String json = configManager.getConfiguration(RooftopLensConfig.GROUP, viewsKey(course));
         if (json == null || json.isEmpty())
         {
@@ -304,6 +302,10 @@ public class RooftopLensPlugin extends Plugin
             {
                 if (view != null && reachableViewKey(key) && validSteps(view.clicks, course.stepCount(), 2))
                 {
+                    if (!validSteps(view.cameraOffsets, course.stepCount(), ClickSpot.OFFSET_AXES))
+                    {
+                        view.cameraOffsets = ViewBook.emptySteps(course.stepCount());
+                    }
                     loaded.views.put(key, view);
                 }
             });
@@ -313,27 +315,6 @@ public class RooftopLensPlugin extends Plugin
             // An unreadable record is discarded; the next clean lap starts a new one.
         }
         return loaded;
-    }
-
-    private void loadCameraOffsets(ViewBook book, Course course)
-    {
-        String json = configManager.getConfiguration(RooftopLensConfig.GROUP, spotsKey(course));
-        if (json == null || json.isEmpty())
-        {
-            return;
-        }
-        try
-        {
-            List<List<double[]>> offsets = gson.fromJson(json, OFFSETS_TYPE);
-            if (validSteps(offsets, course.stepCount(), ClickSpot.OFFSET_AXES))
-            {
-                book.cameraOffsets = offsets;
-            }
-        }
-        catch (JsonSyntaxException ignored)
-        {
-            // An unreadable record is discarded; the next clean lap starts a new one.
-        }
     }
 
     private static boolean reachableViewKey(String key)
@@ -375,8 +356,4 @@ public class RooftopLensPlugin extends Plugin
         return "views." + course.name();
     }
 
-    private static String spotsKey(Course course)
-    {
-        return "spots." + course.name();
-    }
 }

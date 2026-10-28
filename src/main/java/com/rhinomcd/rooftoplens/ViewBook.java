@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Every camera view the player has completed a clean lap in, for one course. A view's score is the median, over
@@ -23,22 +24,15 @@ final class ViewBook
 
     private final int steps;
     final Map<String, View> views = new LinkedHashMap<>();
-    /**
-     * Per step, recent {@link LapRecorder.Click#cameraOffset}s. They are world positions, so they hold in every
-     * view and at every pitch and zoom.
-     */
-    List<List<double[]>> cameraOffsets;
 
     ViewBook(int steps)
     {
         this.steps = steps;
-        cameraOffsets = emptySteps(steps);
     }
 
     void record(LapRecorder.Lap lap)
     {
         View view = views.computeIfAbsent(lap.camera.viewKey(), key -> new View(steps));
-        view.laps++;
         view.learned = views.values().stream().mapToLong(other -> other.learned).max().orElse(0) + 1;
         for (int step = 0; step < steps; step++)
         {
@@ -46,7 +40,7 @@ final class ViewBook
             keep(view.clicks.get(step), new double[] { click.lens.x, click.lens.y });
             if (click.cameraOffset != null)
             {
-                keep(cameraOffsets.get(step), click.cameraOffset);
+                keep(view.cameraOffsets.get(step), click.cameraOffset);
             }
         }
     }
@@ -60,7 +54,7 @@ final class ViewBook
         }
     }
 
-    private static List<List<double[]>> emptySteps(int steps)
+    static List<List<double[]>> emptySteps(int steps)
     {
         List<List<double[]>> lists = new ArrayList<>(steps);
         for (int i = 0; i < steps; i++)
@@ -68,25 +62,6 @@ final class ViewBook
             lists.add(new ArrayList<>());
         }
         return lists;
-    }
-
-    /** The usual {@link LapRecorder.Click#cameraOffset} for a step, or null if none was recorded. */
-    double[] cameraOffset(int step)
-    {
-        List<double[]> kept = cameraOffsets.get(step);
-        if (kept.isEmpty())
-        {
-            return null;
-        }
-        double[] median = new double[kept.get(0).length];
-        for (int axis = 0; axis < median.length; axis++)
-        {
-            int a = axis;
-            double[] sorted = kept.stream().mapToDouble(value -> value[a]).sorted().toArray();
-            int mid = sorted.length / 2;
-            median[axis] = sorted.length % 2 == 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-        }
-        return median;
     }
 
     View view(CameraPose camera)
@@ -185,15 +160,42 @@ final class ViewBook
 
     static final class View
     {
-        int laps;
         /** Order of this view's latest lap among all views; higher is more recent. */
         long learned;
         /** Per step, the most recent clean-lap clicks in {@link Lens} units {x, y}. */
         final List<List<double[]>> clicks;
 
+        /**
+         * Per step, recent {@link LapRecorder.Click#cameraOffset}s. The camera orbits the player differently in each
+         * view, so these only hold in the view they were learned in.
+         */
+        List<List<double[]>> cameraOffsets;
+
         View(int steps)
         {
             clicks = emptySteps(steps);
+            cameraOffsets = emptySteps(steps);
+        }
+
+        /** The usual {@link LapRecorder.Click#cameraOffset} for a step at this camera pitch, or null if none was recorded. */
+        double[] cameraOffset(int step, int pitch)
+        {
+            List<double[]> kept = cameraOffsets.get(step).stream()
+                .filter(offset -> Math.abs(offset[ClickSpot.PITCH_AXIS] - pitch) <= ClickSpot.PITCH_TOLERANCE)
+                .collect(Collectors.toList());
+            if (kept.isEmpty())
+            {
+                return null;
+            }
+            double[] median = new double[kept.get(0).length];
+            for (int axis = 0; axis < median.length; axis++)
+            {
+                int a = axis;
+                double[] sorted = kept.stream().mapToDouble(value -> value[a]).sorted().toArray();
+                int mid = sorted.length / 2;
+                median[axis] = sorted.length % 2 == 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+            }
+            return median;
         }
 
         /** Laps whose clicks still count toward the route. */

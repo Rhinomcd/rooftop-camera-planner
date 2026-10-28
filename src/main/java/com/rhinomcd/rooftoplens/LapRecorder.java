@@ -5,10 +5,10 @@ import java.awt.geom.Point2D;
 /**
  * Follows one lap through obstacle clicks and Agility XP drops. A click on the expected obstacle counts once the
  * previous obstacle's XP has landed; a click before that is held, because the game may or may not take it. If the
- * game took it, the next XP drop confirms it; if not, the player's next click replaces it. A lap starts on the
- * course's first obstacle and completes on the last obstacle's XP. Clicks on other obstacles are ignored; clicking
- * the first obstacle again starts over. Moving the camera out of the starting view before the last click drops the
- * lap.
+ * game took it, the next XP drop or a click on the obstacle after it confirms it; if not, the player's next click
+ * replaces it. A lap starts on the course's first obstacle and completes on the last obstacle's XP; clicking the first
+ * obstacle while the last one runs is held for the next lap. Clicks on other obstacles are ignored, and clicking the
+ * first obstacle mid-lap starts over. Moving the camera out of the starting view before the last click drops the lap.
  */
 final class LapRecorder
 {
@@ -17,11 +17,13 @@ final class LapRecorder
     private final int steps;
     private Click[] clicks;
     private CameraPose start;
+    /** The step expected next: -1 with no lap, {@code steps} while the last obstacle's XP is pending. */
     private int next = -1;
     /** The last counted click's obstacle hasn't given XP yet. */
     private boolean awaitingXp;
-    /** A click on the next obstacle made while {@link #awaitingXp}. */
+    /** A click on the next obstacle made while {@link #awaitingXp}, and the camera it was made from. */
     private Click early;
+    private CameraPose earlyCamera;
     private Lap lastLap;
 
     LapRecorder(int steps)
@@ -31,12 +33,21 @@ final class LapRecorder
 
     Outcome obstacleClicked(int step, Click click, CameraPose camera)
     {
-        if (step == 0 && next != 1)
+        if (step == 0 && next == steps)
         {
-            begin(click, camera);
+            hold(click, camera);
             return Outcome.NONE;
         }
-        if (step != next)
+        if (step == 0 && next != 0 && next != 1)
+        {
+            clicks = new Click[steps];
+            next = 0;
+            count(click, camera);
+            awaitingXp = true;
+            return Outcome.NONE;
+        }
+        boolean takenEarly = step == next + 1 && early != null && !awaitingXp;
+        if (next < 0 || (step != next && !takenEarly))
         {
             return Outcome.NONE;
         }
@@ -44,13 +55,22 @@ final class LapRecorder
         {
             return Outcome.CAMERA_MOVED;
         }
-        if (awaitingXp)
+        if (takenEarly)
         {
-            early = click;
-            return Outcome.NONE;
+            // The held click's obstacle is underway, so this click is early for the one after it.
+            count(early, earlyCamera);
+            awaitingXp = true;
+            hold(click, camera);
         }
-        count(click);
-        awaitingXp = true;
+        else if (awaitingXp)
+        {
+            hold(click, camera);
+        }
+        else
+        {
+            count(click, camera);
+            awaitingXp = true;
+        }
         return Outcome.NONE;
     }
 
@@ -66,7 +86,7 @@ final class LapRecorder
         }
         else if (early != null)
         {
-            count(early);
+            count(early, earlyCamera);
         }
         else
         {
@@ -76,8 +96,9 @@ final class LapRecorder
         {
             return Outcome.NONE;
         }
-        next = -1;
         lastLap = new Lap(start, clicks.clone());
+        next = early == null ? -1 : 0;
+        clicks = new Click[steps];
         return Outcome.COMPLETED;
     }
 
@@ -87,6 +108,7 @@ final class LapRecorder
         if (next > 0 && next < steps && !camera.viewKey().equals(start.viewKey()))
         {
             next = -1;
+            early = null;
             return true;
         }
         return false;
@@ -120,17 +142,18 @@ final class LapRecorder
         return start;
     }
 
-    private void begin(Click click, CameraPose camera)
+    private void hold(Click click, CameraPose camera)
     {
-        clicks = new Click[steps];
-        start = camera;
-        next = 0;
-        count(click);
-        awaitingXp = true;
+        early = click;
+        earlyCamera = camera;
     }
 
-    private void count(Click click)
+    private void count(Click click, CameraPose camera)
     {
+        if (next == 0)
+        {
+            start = camera;
+        }
         clicks[next++] = click;
         early = null;
     }
