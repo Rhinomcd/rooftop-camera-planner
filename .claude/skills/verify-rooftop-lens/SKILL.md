@@ -20,7 +20,7 @@ The helper `.claude/skills/verify-rooftop-lens/lens.sh` wraps every step below. 
 ~/.claude/skills/test-box/box.sh run sh ./gradlew test
 ```
 
-`ReplayTest` replays every `src/test/resources/recordings/*.jsonl` file and checks the `expect` line at its top: laps learned, and the number of "Camera moved, lap dropped" notices.
+`ReplayTest` replays every `src/test/resources/recordings/*.jsonl` file and checks the `expect` line at its top: laps learned, the number of "Camera moved, lap dropped" notices, and, when given, the `best` and `next` views and whether the card is `calibrated`. Recordings with `xp` lines replay Agility XP as recorded; older ones replay as if every click succeeded.
 
 **Live:** this needs a Jagex-account login saved by the launcher.
 
@@ -41,7 +41,7 @@ The helper `.claude/skills/verify-rooftop-lens/lens.sh` wraps every step below. 
 
 **Live:** ask the human to run laps. Say exactly what to do, for example "2 laps at Rellekka without touching the camera". Then observe:
 
-- `lens.sh laps` lists `Lap learned on RELLEKKA in view Y:P:Z` and `Lap dropped on RELLEKKA: started y/p/z now y/p/z` lines. A drop line shows exactly which camera axis moved.
+- `lens.sh laps` lists `Lap learned on RELLEKKA in view Y:P` and `Lap dropped on RELLEKKA: started y/p now y/p` lines. A drop line shows exactly which camera axis moved.
 - `lens.sh screenshot` asks the dev-only recorder for the next rendered game frame through RuneLite's `DrawManager`, then copies it into evidence. Overlapping windows can't spoil it, but it only fires on a game tick, so the human must be logged in.
 - The human can hand you screenshots directly. Treat what they report as evidence, and get the log line that matches it.
 

@@ -194,8 +194,7 @@ final class Replay
 
     int lapsLearned()
     {
-        ViewBook book = plugin.getBook();
-        return book == null ? 0 : book.views.values().stream().mapToInt(view -> view.laps).sum();
+        return (int) noticesOf("Lap learned");
     }
 
     String bestKey()

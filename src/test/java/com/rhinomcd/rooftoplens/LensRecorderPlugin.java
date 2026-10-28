@@ -78,7 +78,10 @@ public class LensRecorderPlugin extends Plugin
     @Override
     protected void shutDown() throws IOException
     {
-        out.close();
+        if (out != null)
+        {
+            out.close();
+        }
         keys.clear();
     }
 

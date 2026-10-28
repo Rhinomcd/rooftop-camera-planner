@@ -1,4 +1,4 @@
-{"t":"expect","laps":34,"drops":0,"best":"1024:384","next":"1280:384","calibrated":false,"note":"Recorded in-game, 2026-10-27. 34 Rellekka laps while the tiling window manager resized the canvas 44 times and the player zoomed; no lap drops and no learned view is lost."}
+{"t":"expect","laps":34,"drops":0,"best":"1024:384","next":"1280:384","calibrated":false,"note":"Recorded in-game, 2026-10-27. 34 Rellekka laps while the tiling window manager resized the canvas 44 times and the player zoomed; no lap drops and no learned view is lost. It predates XP recording, so it replays as if every click succeeded and covers resize and zoom invariance, not XP timing."}
 {"t":"state","v":"LOGGING_IN"}
 {"t":"state","v":"LOADING"}
 {"t":"spawn","k":0,"id":14946,"plane":0}
