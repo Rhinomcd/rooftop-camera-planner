@@ -170,9 +170,12 @@ public class LensRecorderPlugin extends Plugin
         line.addProperty("id", event.getId());
         line.addProperty("mx", mouse == null ? -1 : mouse.getX());
         line.addProperty("my", mouse == null ? -1 : mouse.getY());
-        line.addProperty("fx", client.getCameraFocalPointX());
-        line.addProperty("fy", client.getCameraFocalPointY());
-        line.addProperty("fz", client.getCameraFocalPointZ());
+        line.addProperty("gpu", client.isGpu());
+        line.addProperty("cx", client.isGpu() ? client.getCameraFpX() : client.getCameraX());
+        line.addProperty("cy", client.isGpu() ? client.getCameraFpY() : client.getCameraY());
+        line.addProperty("cz", client.isGpu() ? client.getCameraFpZ() : client.getCameraZ());
+        line.addProperty("cpitch", client.getCameraFpPitch());
+        line.addProperty("cyaw", client.getCameraFpYaw());
         write(line);
     }
 

@@ -59,7 +59,7 @@ final class Replay
     private final ObstacleOverlay obstacleOverlay;
     private final LensPanel lensPanel;
     private JsonObject camera = new JsonObject();
-    private JsonObject focal = new JsonObject();
+    private JsonObject clickCamera = new JsonObject();
     private int mouseX = -1;
     private int mouseY = -1;
     private GameState state = GameState.LOGGED_IN;
@@ -93,9 +93,13 @@ final class Replay
         when(client.getViewportYOffset()).thenAnswer(call -> intOf("vy", 0));
         when(client.getViewportWidth()).thenAnswer(call -> intOf("vw", intOf("cw", 765)));
         when(client.getViewportHeight()).thenAnswer(call -> intOf("vh", intOf("ch", 503)));
-        when(client.getCameraFocalPointX()).thenAnswer(call -> (float) intOf(focal, "fx", 0));
-        when(client.getCameraFocalPointY()).thenAnswer(call -> (float) intOf(focal, "fy", 0));
-        when(client.getCameraFocalPointZ()).thenAnswer(call -> (float) intOf(focal, "fz", 0));
+        // The camera position and angles are logged with each click, so projections match the frame at click time.
+        when(client.isGpu()).thenReturn(true);
+        when(client.getCameraFpX()).thenAnswer(call -> floatOf(clickCamera, "cx"));
+        when(client.getCameraFpY()).thenAnswer(call -> floatOf(clickCamera, "cy"));
+        when(client.getCameraFpZ()).thenAnswer(call -> floatOf(clickCamera, "cz"));
+        when(client.getCameraFpPitch()).thenAnswer(call -> floatOf(clickCamera, "cpitch"));
+        when(client.getCameraFpYaw()).thenAnswer(call -> floatOf(clickCamera, "cyaw"));
         when(client.getMouseCanvasPosition()).thenAnswer(call -> new Point(mouseX, mouseY));
 
         plugin = new RooftopLensPlugin();
@@ -165,7 +169,7 @@ final class Replay
                 case "click":
                     mouseX = line.get("mx").getAsInt();
                     mouseY = line.get("my").getAsInt();
-                    focal = line;
+                    clickCamera = line;
                     MenuEntry entry = mock(MenuEntry.class);
                     when(entry.getIdentifier()).thenReturn(line.get("id").getAsInt());
                     when(entry.getType()).thenReturn(MenuAction.valueOf(line.get("action").getAsString()));
@@ -260,6 +264,11 @@ final class Replay
     private int intOf(String key, int fallback)
     {
         return intOf(camera, key, fallback);
+    }
+
+    private static float floatOf(JsonObject line, String key)
+    {
+        return line.has(key) ? line.get(key).getAsFloat() : 0f;
     }
 
     private static int intOf(JsonObject line, String key, int fallback)

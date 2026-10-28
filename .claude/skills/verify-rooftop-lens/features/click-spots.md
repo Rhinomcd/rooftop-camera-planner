@@ -1,6 +1,6 @@
 # Click spots
 
-Obstacles get numbered badges. The next obstacle is filled amber, and the others are outlined. In a view with learned laps, the screen shows where each obstacle will be when the player usually clicks it, fixed on screen while the camera follows, so the mouse can wait there during the obstacle animation. Each click stores the camera focal point minus the obstacle's position; the overlay projects the current focal point minus that median offset, plus the gap from the obstacle's base point to its clickbox center. Offsets are world positions, so they're learned per course (`rooftopLens.spots.<COURSE>`) and hold in every view, pitch, zoom, and window size. The next spot's ring is amber while the previous obstacle runs and green once its XP lands.
+Obstacles get numbered badges. The next obstacle is filled amber, and the others are outlined. In a view with learned laps, the screen shows where each obstacle will be when the player usually clicks it, fixed on screen while the camera follows, so the mouse can wait there during the obstacle animation. Each click stores the camera position (the one `Perspective` projects from) minus the obstacle's position, plus the clickbox center's offset from the obstacle's base point; the overlay projects the current camera position minus that median offset. Moving the camera without turning moves the scene by the opposite amount, so the spot stays still while the camera follows; `ClickSpotTest` checks this. Offsets are world positions, so they're learned per course (`rooftopLens.spots.<COURSE>`) and hold in every view, pitch, zoom, and window size. The next spot's ring is amber while the previous obstacle runs and green once its XP lands.
 
 ## Sub-features
 
@@ -22,5 +22,6 @@ Obstacles get numbered badges. The next obstacle is filled amber, and the others
 
 ## Gotchas
 
+- The camera focal point leads the camera, which eases toward it; projecting from the focal point made spots drift during the animation.
 - The spot is where the human clicked, so it sits on the obstacle only at click time; while the character runs it can sit on empty ground. That's intended.
 - Red boxes come from other plugins, such as TicTac7x Rooftops, not from Rooftop Lens.
