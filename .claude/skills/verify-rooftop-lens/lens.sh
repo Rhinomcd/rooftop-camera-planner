@@ -14,12 +14,20 @@ case "${1:-}" in
   launch)
     if pid=$(client_pid); then echo "already running: pid $pid"; exit 0; fi
     [[ -f $HOME/.runelite/credentials.properties ]] || { echo "missing ~/.runelite/credentials.properties (see SKILL.md Launch)"; exit 1; }
-    (cd "$REPO" && setsid nohup sh ./gradlew run --no-daemon </dev/null >"$LOG" 2>&1 &)
+    # A transient systemd unit keeps the client out of the agent's process tree, so it survives the agent
+    # restarting; setsid alone does not.
+    : >"$LOG"
+    systemctl --user reset-failed rooftop-lens-client 2>/dev/null || true
+    systemd-run --user --quiet --unit=rooftop-lens-client --working-directory="$REPO" \
+      --property=StandardOutput=append:"$LOG" --property=StandardError=append:"$LOG" \
+      --setenv=DISPLAY="${DISPLAY:-}" --setenv=WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-}" \
+      --setenv=XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" --setenv=PATH="$PATH" --setenv=JAVA_HOME="${JAVA_HOME:-}" \
+      sh ./gradlew run --no-daemon
     for _ in $(seq 1 120); do
       for p in $(pgrep java || true); do
         if tr '\0' ' ' </proc/"$p"/cmdline | grep -q 'rooftoplens.RooftopLensPluginTest'; then echo "$p" >"$PID_FILE"; fi
       done
-      grep -q 'RooftopLensPlugin is now running' "$LOG" 2>/dev/null && break
+      grep -q 'Client initialization took' "$LOG" 2>/dev/null && break
       grep -q 'BUILD FAILED' "$LOG" 2>/dev/null && { tail -40 "$LOG"; exit 1; }
       sleep 2
     done
@@ -57,7 +65,8 @@ case "${1:-}" in
     echo "$dest" ;;
   stop)
     pid=$(client_pid) || { echo "nothing to stop"; exit 0; }
-    kill "$pid" && rm -f "$PID_FILE" && echo "stopped $pid (evidence kept in $RUN_DIR/evidence)" ;;
+    systemctl --user stop rooftop-lens-client 2>/dev/null || kill "$pid"
+    rm -f "$PID_FILE" && echo "stopped $pid (evidence kept in $RUN_DIR/evidence)" ;;
   *)
     echo "usage: lens.sh launch|doctor|laps|screenshot|latest-recording|replay [file]|promote <file> <name> <laps> <drops> [note]|stop"; exit 2 ;;
 esac

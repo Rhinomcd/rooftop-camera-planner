@@ -25,7 +25,7 @@ The helper `.claude/skills/verify-rooftop-lens/lens.sh` wraps every step below. 
 **Live:** this needs a Jagex-account login saved by the launcher.
 
 1. Check that `~/.runelite/credentials.properties` exists. If it doesn't, the human starts RuneLite once from the Jagex Launcher with the client argument `--insecure-write-credentials`. The launcher keeps its settings in `settings.json` in its working directory; on this machine that's under `/tmp/appimage_extracted_*`.
-2. Run `.claude/skills/verify-rooftop-lens/lens.sh launch`. It runs `./gradlew run` detached and waits for `RooftopLensPlugin is now running` in the log. Readiness means the plugin is running, not that a window exists. The human still has to press Play to log in.
+2. Run `.claude/skills/verify-rooftop-lens/lens.sh launch`. It runs `./gradlew run` as the transient systemd user unit `rooftop-lens-client`, so the client survives an agent restart, and waits for `Client initialization took` in the log. The human still has to press Play to log in.
 3. The dev client logs into the same account as the human's normal client. Ask the human to close their normal client on that account first, or one of the two gets kicked.
 
 ## Doctor
