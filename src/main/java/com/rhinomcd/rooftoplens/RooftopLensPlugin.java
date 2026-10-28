@@ -272,6 +272,10 @@ public class RooftopLensPlugin extends Plugin
         Point2D.Double onBox = bounds == null || bounds.width == 0 || bounds.height == 0 ? null
             : new Point2D.Double((x - bounds.x) / bounds.width, (y - bounds.y) / bounds.height);
         double scale = client.getScale();
+        if (scale <= 0)
+        {
+            return null;
+        }
         double centerX = client.getViewportXOffset() + client.getViewportWidth() / 2.0;
         double centerY = client.getViewportYOffset() + client.getViewportHeight() / 2.0;
         return new LapRecorder.Click(new Point2D.Double((x - centerX) / scale, (y - centerY) / scale), onBox);
