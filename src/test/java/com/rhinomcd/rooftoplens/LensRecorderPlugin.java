@@ -18,6 +18,7 @@ import javax.imageio.ImageIO;
 import javax.inject.Inject;
 import net.runelite.api.Client;
 import net.runelite.api.Point;
+import net.runelite.api.Skill;
 import net.runelite.api.TileObject;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.DecorativeObjectDespawned;
@@ -29,6 +30,7 @@ import net.runelite.api.events.GameTick;
 import net.runelite.api.events.GroundObjectDespawned;
 import net.runelite.api.events.GroundObjectSpawned;
 import net.runelite.api.events.MenuOptionClicked;
+import net.runelite.api.events.StatChanged;
 import net.runelite.api.events.WallObjectDespawned;
 import net.runelite.api.events.WallObjectSpawned;
 import net.runelite.api.gameval.VarClientID;
@@ -168,7 +170,21 @@ public class LensRecorderPlugin extends Plugin
         line.addProperty("id", event.getId());
         line.addProperty("mx", mouse == null ? -1 : mouse.getX());
         line.addProperty("my", mouse == null ? -1 : mouse.getY());
+        line.addProperty("fx", client.getCameraFocalPointX());
+        line.addProperty("fy", client.getCameraFocalPointY());
+        line.addProperty("fz", client.getCameraFocalPointZ());
         write(line);
+    }
+
+    @Subscribe
+    public void onStatChanged(StatChanged event)
+    {
+        if (event.getSkill() == Skill.AGILITY)
+        {
+            JsonObject line = line("xp");
+            line.addProperty("v", event.getXp());
+            write(line);
+        }
     }
 
     @Subscribe public void onGameObjectSpawned(GameObjectSpawned e) { spawned(e.getGameObject()); }
@@ -192,6 +208,9 @@ public class LensRecorderPlugin extends Plugin
         line.addProperty("k", key);
         line.addProperty("id", object.getId());
         line.addProperty("plane", object.getPlane());
+        line.addProperty("lx", object.getLocalLocation().getX());
+        line.addProperty("ly", object.getLocalLocation().getY());
+        line.addProperty("z", object.getZ());
         write(line);
     }
 

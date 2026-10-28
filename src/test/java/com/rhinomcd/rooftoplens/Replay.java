@@ -28,6 +28,7 @@ import net.runelite.api.GameState;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.Point;
+import net.runelite.api.Skill;
 import net.runelite.api.WorldView;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.GameObjectDespawned;
@@ -35,6 +36,8 @@ import net.runelite.api.events.GameObjectSpawned;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.MenuOptionClicked;
+import net.runelite.api.events.StatChanged;
+import net.runelite.api.coords.LocalPoint;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.ui.overlay.OverlayManager;
@@ -56,6 +59,7 @@ final class Replay
     private final ObstacleOverlay obstacleOverlay;
     private final LensPanel lensPanel;
     private JsonObject camera = new JsonObject();
+    private JsonObject focal = new JsonObject();
     private int mouseX = -1;
     private int mouseY = -1;
     private GameState state = GameState.LOGGED_IN;
@@ -89,6 +93,9 @@ final class Replay
         when(client.getViewportYOffset()).thenAnswer(call -> intOf("vy", 0));
         when(client.getViewportWidth()).thenAnswer(call -> intOf("vw", intOf("cw", 765)));
         when(client.getViewportHeight()).thenAnswer(call -> intOf("vh", intOf("ch", 503)));
+        when(client.getCameraFocalPointX()).thenAnswer(call -> (float) intOf(focal, "fx", 0));
+        when(client.getCameraFocalPointY()).thenAnswer(call -> (float) intOf(focal, "fy", 0));
+        when(client.getCameraFocalPointZ()).thenAnswer(call -> (float) intOf(focal, "fz", 0));
         when(client.getMouseCanvasPosition()).thenAnswer(call -> new Point(mouseX, mouseY));
 
         plugin = new RooftopLensPlugin();
@@ -109,7 +116,11 @@ final class Replay
     /** Replays every line; renders a frame after each obstacle click when {@code frameDir} is set. */
     Replay run(Path recording, Path frameDir) throws IOException
     {
-        for (String text : Files.readAllLines(recording, StandardCharsets.UTF_8))
+        List<String> lines = Files.readAllLines(recording, StandardCharsets.UTF_8);
+        // Recordings made before the recorder logged XP replay as if every obstacle click succeeded.
+        boolean hasXp = lines.stream().anyMatch(text -> text.contains("\"t\":\"xp\""));
+        int syntheticXp = 0;
+        for (String text : lines)
         {
             if (text.isBlank())
             {
@@ -148,13 +159,22 @@ final class Replay
                         boxes.put(Integer.parseInt(box.getKey()), new Rectangle(b[0], b[1], b[2], b[3]));
                     }
                     break;
+                case "xp":
+                    plugin.onStatChanged(new StatChanged(Skill.AGILITY, line.get("v").getAsInt(), 1, 1));
+                    break;
                 case "click":
                     mouseX = line.get("mx").getAsInt();
                     mouseY = line.get("my").getAsInt();
+                    focal = line;
                     MenuEntry entry = mock(MenuEntry.class);
                     when(entry.getIdentifier()).thenReturn(line.get("id").getAsInt());
                     when(entry.getType()).thenReturn(MenuAction.valueOf(line.get("action").getAsString()));
                     plugin.onMenuOptionClicked(new MenuOptionClicked(entry));
+                    if (!hasXp)
+                    {
+                        plugin.onStatChanged(new StatChanged(Skill.AGILITY, syntheticXp++, 1, 1));
+                        plugin.onStatChanged(new StatChanged(Skill.AGILITY, syntheticXp++, 1, 1));
+                    }
                     noteNotice();
                     if (frameDir != null)
                     {
@@ -202,6 +222,8 @@ final class Replay
         GameObject object = mock(GameObject.class);
         when(object.getId()).thenReturn(line.get("id").getAsInt());
         when(object.getPlane()).thenReturn(line.get("plane").getAsInt());
+        when(object.getLocalLocation()).thenReturn(new LocalPoint(intOf(line, "lx", 0), intOf(line, "ly", 0), 0));
+        when(object.getZ()).thenReturn(intOf(line, "z", 0));
         when(object.getClickbox()).thenAnswer(call -> boxes.get(key));
         objects.put(key, object);
         GameObjectSpawned spawned = new GameObjectSpawned();
@@ -237,6 +259,11 @@ final class Replay
 
     private int intOf(String key, int fallback)
     {
-        return camera.has(key) ? camera.get(key).getAsInt() : fallback;
+        return intOf(camera, key, fallback);
+    }
+
+    private static int intOf(JsonObject line, String key, int fallback)
+    {
+        return line.has(key) ? line.get(key).getAsInt() : fallback;
     }
 }
