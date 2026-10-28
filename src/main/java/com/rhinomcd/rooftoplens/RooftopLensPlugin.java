@@ -239,7 +239,10 @@ public class RooftopLensPlugin extends Plugin
         obstacles.put(object, owner.stepOf(object.getId()));
     }
 
-    /** The mouse when it is on the obstacle, else the obstacle's center. */
+    /**
+     * The center of the clicked obstacle's clickbox, or the mouse if no clickbox is on screen. The center, not the
+     * mouse, so the learned spot marks where the obstacle sits when it is clicked rather than which edge was hit.
+     */
     private LapRecorder.Click clickPoint(int objectId)
     {
         Point mouse = client.getMouseCanvasPosition();
@@ -252,24 +255,20 @@ public class RooftopLensPlugin extends Plugin
             .filter(shape -> mouse != null && shape.contains(mouse.getX(), mouse.getY()))
             .findFirst()
             .orElse(clickboxes.isEmpty() ? null : clickboxes.get(0));
-        double x;
-        double y;
-        if (clickbox != null && (mouse == null || !clickbox.contains(mouse.getX(), mouse.getY())))
+        Point2D.Double lens;
+        if (clickbox != null)
         {
             Rectangle bounds = clickbox.getBounds();
-            x = bounds.getCenterX();
-            y = bounds.getCenterY();
+            lens = Lens.fromScreen(client, bounds.getCenterX(), bounds.getCenterY());
         }
         else if (mouse != null)
         {
-            x = mouse.getX();
-            y = mouse.getY();
+            lens = Lens.fromScreen(client, mouse.getX(), mouse.getY());
         }
         else
         {
             return null;
         }
-        Point2D.Double lens = Lens.fromScreen(client, x, y);
         return lens == null ? null : new LapRecorder.Click(lens);
     }
 

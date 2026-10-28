@@ -3,8 +3,8 @@
 <p align="center">Find the rooftop Agility camera view that keeps your clicks closest together.</p>
 
 Rooftop Lens watches your laps. Each lap you finish without moving the camera is filed under that camera view,
-along with where you clicked each obstacle. A view's score is the distance your mouse travels through your usual
-click spots for one lap. The shortest route wins. Distances are measured relative to the game's projection, so
+along with where you clicked each obstacle. A view's score is the distance your mouse travels from obstacle to
+obstacle for one lap. The shortest route wins. Distances are measured relative to the game's projection, so
 resizing the window or zooming doesn't change them, and zoom isn't part of a view.
 
 The plugin never moves the camera, mouse, or character, and never clicks for you. Everything is stored in your
@@ -25,8 +25,8 @@ local RuneLite config.
    the view you started in. A finished lap shows **Lap learned**. If the camera leaves that view, the card shows
    **Camera moved, lap dropped**; the next lap starts when you click the first obstacle again. Camera pitch above
    the game's standard limit counts as the limit, because the game pulls expanded pitch back there mid-course.
-4. In any view you've lapped, the screen shows where you usually click each obstacle: a ring and step number on
-   the next one, and a dashed line to the one after. The spots are fixed on screen, not on the obstacle, so you can
+4. In any view you've lapped, the screen shows where each obstacle usually is when you click it: a ring on the
+   next one, and a dashed line to the one after. The spots are fixed on screen, not on the obstacle, so you can
    move the mouse there during the animation and click as soon as the obstacle arrives. They follow window
    resizes and zoom.
 
