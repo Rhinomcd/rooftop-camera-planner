@@ -17,6 +17,8 @@ import java.util.Map;
 final class ViewBook
 {
     private static final int CLICKS_KEPT = 8;
+    /** Laps the best view needs before its score is trusted; one lucky lap shouldn't settle the search. */
+    static final int CONFIRM_LAPS = 3;
     private static final int[] QUARTER_TURNS = { 0, 512, 1024, 1536 };
     private static final int[] REFINE_SPREADS = { 256, 128 };
 
@@ -108,8 +110,14 @@ final class ViewBook
         return best;
     }
 
-    /** True once every view the search wants has a lap, so the suggestion is the best view for good. */
+    /** True once every view the search wants has a lap and the best view has been confirmed over several. */
     boolean calibrated(CameraPose current)
+    {
+        return searched(current) && views.get(bestKey(current)).keptLaps() >= CONFIRM_LAPS;
+    }
+
+    /** True once every view the search wants has a lap, so the suggestion is the best view. */
+    boolean searched(CameraPose current)
     {
         String best = bestKey(current);
         return best != null && suggestion(current).viewKey().equals(best);

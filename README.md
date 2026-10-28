@@ -18,7 +18,8 @@ local RuneLite config.
    and up or down for tilt. The text says the same thing in words. **Try this view** is a view you haven't lapped
    yet: the four quarter turns, then 45° and 22.5° either side of the best one. **Best view** is your shortest
    route so far. Views are compared at the pitch of your latest lap, so if you tilt away the card asks you to tilt
-   back. Once every view the search wants has a lap, the card says **Calibrated**. When you're on the view,
+   back. Once every view the search wants has a lap, the card asks for **3 laps** on the best view to
+   confirm it, so one lucky lap can't win, and then says **Calibrated**. When you're on the view,
    the ring centers and turns green.
 3. Run a lap from the first obstacle to the last without touching the camera. While a lap runs, the card holds
    the view you started in. A finished lap shows **Lap learned**. If the camera leaves that view, the card shows

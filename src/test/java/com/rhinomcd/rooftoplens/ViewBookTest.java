@@ -81,6 +81,10 @@ public class ViewBookTest
         assertFalse(book.calibrated(camera));
         book.record(lap(new CameraPose(896, 384), 0.3, 0.7));
         assertEquals("768:384", book.suggestion(camera).viewKey());
+        assertTrue(book.searched(camera));
+        assertFalse(book.calibrated(camera));
+        book.record(lap(new CameraPose(768, 384), 0.45, 0.55));
+        book.record(lap(new CameraPose(768, 384), 0.45, 0.55));
         assertTrue(book.calibrated(camera));
     }
 

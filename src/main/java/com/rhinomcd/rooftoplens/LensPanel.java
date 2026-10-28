@@ -64,6 +64,7 @@ final class LensPanel extends Overlay
         String bestKey = book.bestKey(camera);
         boolean isBest = goal.viewKey().equals(bestKey);
         boolean calibrated = book.calibrated(camera);
+        boolean confirming = !calibrated && book.searched(camera);
 
         Font bold = FontManager.getRunescapeBoldFont();
         Font small = FontManager.getRunescapeSmallFont();
@@ -75,9 +76,14 @@ final class LensPanel extends Overlay
 
         String status = lapRunning ? "Lap in progress"
             : calibrated ? (onGoal ? "Calibrated" : "Back to best view")
+            : confirming ? "Confirm best view"
             : onGoal ? (isBest ? "On best view" : "On test view") : (isBest ? "Best view" : "Try this view");
         text(g, bold, status, TEXT_X, 34, onGoal ? GOOD : TODO);
-        String hint = !onGoal ? camera.directionsTo(goal) : calibrated && !lapRunning ? "Best view found" : "Hold the camera";
+        String hint = !onGoal ? camera.directionsTo(goal)
+            : lapRunning ? "Hold the camera"
+            : calibrated ? "Best view found"
+            : confirming ? lapsToGo(ViewBook.CONFIRM_LAPS - book.views.get(bestKey).keptLaps())
+            : "Hold the camera";
         text(g, small, hint, TEXT_X, 49, Color.WHITE);
         ViewBook.View here = book.view(camera);
         text(g, small, here == null ? "This view: not learned"
@@ -94,6 +100,11 @@ final class LensPanel extends Overlay
             text(g, small, notice, PAD, HEIGHT - 5, plugin.isNoticeWarning() ? Color.RED : GOOD);
         }
         return new Dimension(WIDTH, HEIGHT);
+    }
+
+    private static String lapsToGo(int laps)
+    {
+        return laps == 1 ? "1 more lap here" : laps + " more laps here";
     }
 
     /** A view's route at the current window size and zoom. */

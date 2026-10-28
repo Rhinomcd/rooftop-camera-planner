@@ -84,7 +84,7 @@ final class ObstacleOverlay extends Overlay
 
     /**
      * Where you usually click each obstacle in this view, fixed on screen rather than on the obstacle, so the mouse
-     * can be waiting there before the obstacle arrives. The next spot is ringed and linked to the one after it.
+     * can be waiting there before the obstacle arrives. The next spot is ringed in the next obstacle's color and linked to the one after it.
      */
     private void drawSpots(Graphics2D g, ViewBook.View view, int next)
     {
@@ -111,7 +111,6 @@ final class ObstacleOverlay extends Overlay
             {
                 g.setStroke(NEXT_OUTLINE);
                 g.draw(new Ellipse2D.Double(spot.x - 9, spot.y - 9, 18, 18));
-                badge(g, step + 1, spot.x + 16, spot.y - 12, color, true);
             }
         }
     }
