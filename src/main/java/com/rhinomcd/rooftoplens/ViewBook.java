@@ -1,6 +1,5 @@
 package com.rhinomcd.rooftoplens;
 
-import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -24,10 +23,16 @@ final class ViewBook
 
     private final int steps;
     final Map<String, View> views = new LinkedHashMap<>();
+    /**
+     * Per step, recent {@link LapRecorder.Click#focalOffset}s. They are world positions, so they hold in every
+     * view and at every pitch and zoom.
+     */
+    List<List<double[]>> focalOffsets;
 
     ViewBook(int steps)
     {
         this.steps = steps;
+        focalOffsets = emptySteps(steps);
     }
 
     void record(LapRecorder.Lap lap)
@@ -37,13 +42,18 @@ final class ViewBook
         view.learned = views.values().stream().mapToLong(other -> other.learned).max().orElse(0) + 1;
         for (int step = 0; step < steps; step++)
         {
-            keep(view.clicks.get(step), lap.clicks[step].lens);
+            LapRecorder.Click click = lap.clicks[step];
+            keep(view.clicks.get(step), new double[] { click.lens.x, click.lens.y });
+            if (click.focalOffset != null)
+            {
+                keep(focalOffsets.get(step), click.focalOffset);
+            }
         }
     }
 
-    private static void keep(List<double[]> kept, Point2D.Double point)
+    private static void keep(List<double[]> kept, double[] point)
     {
-        kept.add(new double[] { point.x, point.y });
+        kept.add(point);
         if (kept.size() > CLICKS_KEPT)
         {
             kept.remove(0);
@@ -58,6 +68,25 @@ final class ViewBook
             lists.add(new ArrayList<>());
         }
         return lists;
+    }
+
+    /** The usual {@link LapRecorder.Click#focalOffset} for a step, or null if none was recorded. */
+    double[] focalOffset(int step)
+    {
+        List<double[]> kept = focalOffsets.get(step);
+        if (kept.isEmpty())
+        {
+            return null;
+        }
+        double[] median = new double[kept.get(0).length];
+        for (int axis = 0; axis < median.length; axis++)
+        {
+            int a = axis;
+            double[] sorted = kept.stream().mapToDouble(value -> value[a]).sorted().toArray();
+            int mid = sorted.length / 2;
+            median[axis] = sorted.length % 2 == 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+        }
+        return median;
     }
 
     View view(CameraPose camera)
@@ -167,13 +196,6 @@ final class ViewBook
             clicks = emptySteps(steps);
         }
 
-        /** Where on screen, in lens units, this step is usually clicked; null if never. */
-        Point2D.Double spot(int step)
-        {
-            List<double[]> kept = clicks.get(step);
-            return kept.isEmpty() ? null : median(kept);
-        }
-
         /** Laps whose clicks still count toward the route. */
         int keptLaps()
         {
@@ -199,18 +221,6 @@ final class ViewBook
             Arrays.sort(routes);
             int mid = laps / 2;
             return laps == 0 ? Double.MAX_VALUE : laps % 2 == 1 ? routes[mid] : (routes[mid - 1] + routes[mid]) / 2;
-        }
-
-        private static Point2D.Double median(List<double[]> kept)
-        {
-            return new Point2D.Double(median(kept, 0), median(kept, 1));
-        }
-
-        private static double median(List<double[]> values, int axis)
-        {
-            double[] sorted = values.stream().mapToDouble(value -> value[axis]).sorted().toArray();
-            int mid = sorted.length / 2;
-            return sorted.length % 2 == 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
         }
     }
 }

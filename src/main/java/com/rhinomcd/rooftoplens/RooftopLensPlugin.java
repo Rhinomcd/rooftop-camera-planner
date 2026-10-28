@@ -5,7 +5,6 @@ import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Provides;
 import java.awt.Rectangle;
-import java.awt.Shape;
 import java.awt.geom.Point2D;
 import java.lang.reflect.Type;
 import java.util.Arrays;
@@ -22,8 +21,10 @@ import net.runelite.api.GameState;
 import net.runelite.api.MenuAction;
 import net.runelite.api.GameObject;
 import net.runelite.api.Point;
+import net.runelite.api.Skill;
 import net.runelite.api.Tile;
 import net.runelite.api.TileObject;
+import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.DecorativeObjectDespawned;
 import net.runelite.api.events.DecorativeObjectSpawned;
@@ -34,6 +35,7 @@ import net.runelite.api.events.GameTick;
 import net.runelite.api.events.GroundObjectDespawned;
 import net.runelite.api.events.GroundObjectSpawned;
 import net.runelite.api.events.MenuOptionClicked;
+import net.runelite.api.events.StatChanged;
 import net.runelite.api.events.WallObjectDespawned;
 import net.runelite.api.events.WallObjectSpawned;
 import net.runelite.client.callback.ClientThread;
@@ -52,6 +54,7 @@ import org.slf4j.LoggerFactory;
 )
 public class RooftopLensPlugin extends Plugin
 {
+    private static final Type OFFSETS_TYPE = new TypeToken<List<List<double[]>>>() { }.getType();
     private static final Type VIEWS_TYPE = new TypeToken<LinkedHashMap<String, ViewBook.View>>() { }.getType();
     private static final Logger log = LoggerFactory.getLogger(RooftopLensPlugin.class);
     private static final int NOTICE_TICKS = 10;
@@ -75,6 +78,7 @@ public class RooftopLensPlugin extends Plugin
     private String notice;
     private boolean noticeWarning;
     private int noticeTicks;
+    private int agilityXp = -1;
 
     @Provides
     RooftopLensConfig provideConfig(ConfigManager configManager)
@@ -109,6 +113,10 @@ public class RooftopLensPlugin extends Plugin
                 obstacles.clear();
                 break;
             case LOGIN_SCREEN:
+                agilityXp = -1;
+                obstacles.clear();
+                course = null;
+                break;
             case HOPPING:
                 obstacles.clear();
                 course = null;
@@ -161,19 +169,29 @@ public class RooftopLensPlugin extends Plugin
         }
         CameraPose clicked = CameraPose.read(client);
         CameraPose start = recorder.inProgress() ? recorder.startView() : null;
-        switch (recorder.obstacleClicked(step, click, clicked))
+        if (recorder.obstacleClicked(step, click, clicked) == LapRecorder.Outcome.CAMERA_MOVED)
         {
-            case COMPLETED:
-                book.record(recorder.lastLap());
-                configManager.setConfiguration(RooftopLensConfig.GROUP, viewsKey(course), gson.toJson(book.views));
-                log.info("Lap learned on {} in view {}", course, recorder.lastLap().camera.viewKey());
-                showNotice("Lap learned", false);
-                break;
-            case CAMERA_MOVED:
-                lapDropped(start, clicked);
-                break;
-            default:
-                break;
+            lapDropped(start, clicked);
+        }
+    }
+
+    /** An Agility XP drop means the obstacle in progress completed. */
+    @Subscribe
+    public void onStatChanged(StatChanged event)
+    {
+        if (event.getSkill() != Skill.AGILITY)
+        {
+            return;
+        }
+        boolean gained = agilityXp >= 0 && event.getXp() > agilityXp;
+        agilityXp = event.getXp();
+        if (gained && course != null && recorder.agilityXpGained() == LapRecorder.Outcome.COMPLETED)
+        {
+            book.record(recorder.lastLap());
+            configManager.setConfiguration(RooftopLensConfig.GROUP, viewsKey(course), gson.toJson(book.views));
+            configManager.setConfiguration(RooftopLensConfig.GROUP, spotsKey(course), gson.toJson(book.focalOffsets));
+            log.info("Lap learned on {} in view {}", course, recorder.lastLap().camera.viewKey());
+            showNotice("Lap learned", false);
         }
     }
 
@@ -246,35 +264,34 @@ public class RooftopLensPlugin extends Plugin
     private LapRecorder.Click clickPoint(int objectId)
     {
         Point mouse = client.getMouseCanvasPosition();
-        List<Shape> clickboxes = obstacles.keySet().stream()
-            .filter(object -> object.getId() == objectId)
-            .map(TileObject::getClickbox)
-            .filter(shape -> shape != null)
+        List<TileObject> candidates = obstacles.keySet().stream()
+            .filter(object -> object.getId() == objectId && object.getClickbox() != null)
             .collect(Collectors.toList());
-        Shape clickbox = clickboxes.stream()
-            .filter(shape -> mouse != null && shape.contains(mouse.getX(), mouse.getY()))
+        TileObject clicked = candidates.stream()
+            .filter(object -> mouse != null && object.getClickbox().contains(mouse.getX(), mouse.getY()))
             .findFirst()
-            .orElse(clickboxes.isEmpty() ? null : clickboxes.get(0));
-        Point2D.Double lens;
-        if (clickbox != null)
+            .orElse(candidates.isEmpty() ? null : candidates.get(0));
+        if (clicked == null)
         {
-            Rectangle bounds = clickbox.getBounds();
-            lens = Lens.fromScreen(client, bounds.getCenterX(), bounds.getCenterY());
+            if (mouse == null)
+            {
+                return null;
+            }
+            Point2D.Double lens = Lens.fromScreen(client, mouse.getX(), mouse.getY());
+            return lens == null ? null : new LapRecorder.Click(lens, null);
         }
-        else if (mouse != null)
-        {
-            lens = Lens.fromScreen(client, mouse.getX(), mouse.getY());
-        }
-        else
-        {
-            return null;
-        }
-        return lens == null ? null : new LapRecorder.Click(lens);
+        Rectangle bounds = clicked.getClickbox().getBounds();
+        Point2D.Double lens = Lens.fromScreen(client, bounds.getCenterX(), bounds.getCenterY());
+        LocalPoint at = clicked.getLocalLocation();
+        double[] focalOffset = { client.getCameraFocalPointX() - at.getX(), client.getCameraFocalPointY() - at.getY(),
+            client.getCameraFocalPointZ() - clicked.getZ() };
+        return lens == null ? null : new LapRecorder.Click(lens, focalOffset);
     }
 
     private ViewBook loadBook(Course course)
     {
         ViewBook loaded = new ViewBook(course.stepCount());
+        loadFocalOffsets(loaded, course);
         String json = configManager.getConfiguration(RooftopLensConfig.GROUP, viewsKey(course));
         if (json == null || json.isEmpty())
         {
@@ -289,7 +306,7 @@ public class RooftopLensPlugin extends Plugin
             }
             views.forEach((key, view) ->
             {
-                if (view != null && reachableViewKey(key) && validSteps(view.clicks, course.stepCount()))
+                if (view != null && reachableViewKey(key) && validSteps(view.clicks, course.stepCount(), 2))
                 {
                     loaded.views.put(key, view);
                 }
@@ -302,6 +319,27 @@ public class RooftopLensPlugin extends Plugin
         return loaded;
     }
 
+    private void loadFocalOffsets(ViewBook book, Course course)
+    {
+        String json = configManager.getConfiguration(RooftopLensConfig.GROUP, spotsKey(course));
+        if (json == null || json.isEmpty())
+        {
+            return;
+        }
+        try
+        {
+            List<List<double[]>> offsets = gson.fromJson(json, OFFSETS_TYPE);
+            if (validSteps(offsets, course.stepCount(), 3))
+            {
+                book.focalOffsets = offsets;
+            }
+        }
+        catch (JsonSyntaxException ignored)
+        {
+            // An unreadable record is discarded; the next clean lap starts a new one.
+        }
+    }
+
     private static boolean reachableViewKey(String key)
     {
         String[] parts = key.split(":");
@@ -309,10 +347,10 @@ public class RooftopLensPlugin extends Plugin
             && CameraPose.fromViewKey(key).withinStandardPitch();
     }
 
-    private static boolean validSteps(List<List<double[]>> steps, int count)
+    private static boolean validSteps(List<List<double[]>> steps, int count, int axes)
     {
         return steps != null && steps.size() == count && steps.stream().allMatch(step -> step != null
-            && step.stream().allMatch(click -> click != null && click.length == 2));
+            && step.stream().allMatch(click -> click != null && click.length == axes));
     }
 
     private void lapDropped(CameraPose start, CameraPose now)
@@ -339,5 +377,10 @@ public class RooftopLensPlugin extends Plugin
     private static String viewsKey(Course course)
     {
         return "views." + course.name();
+    }
+
+    private static String spotsKey(Course course)
+    {
+        return "spots." + course.name();
     }
 }

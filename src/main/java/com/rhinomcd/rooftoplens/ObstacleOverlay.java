@@ -16,7 +16,10 @@ import java.awt.geom.Point2D;
 import java.util.Map;
 import javax.inject.Inject;
 import net.runelite.api.Client;
+import net.runelite.api.Perspective;
+import net.runelite.api.Point;
 import net.runelite.api.TileObject;
+import net.runelite.api.coords.LocalPoint;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -51,9 +54,8 @@ final class ObstacleOverlay extends Overlay
             return null;
         }
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        int next = plugin.getRecorder().nextStep();
+        int next = plugin.getRecorder().nextStep() % plugin.getCourse().stepCount();
         int plane = client.getTopLevelWorldView().getPlane();
-        ViewBook.View view = config.showRoute() && plugin.getCamera() != null ? plugin.getBook().view(plugin.getCamera()) : null;
         for (Map.Entry<TileObject, Integer> entry : plugin.getObstacles().entrySet())
         {
             int step = entry.getValue();
@@ -75,22 +77,24 @@ final class ObstacleOverlay extends Overlay
             Rectangle bounds = clickbox.getBounds();
             badge(g, step + 1, bounds.getCenterX(), bounds.getMinY() - 10, color, isNext);
         }
-        if (view != null)
+        if (config.showRoute())
         {
-            drawSpots(g, view, next);
+            drawSpots(g, next);
         }
         return null;
     }
 
     /**
-     * Where you usually click each obstacle in this view, fixed on screen rather than on the obstacle, so the mouse
-     * can be waiting there before the obstacle arrives. The next spot is ringed in the next obstacle's color and linked to the one after it.
+     * Where each obstacle will be on screen when you usually click it, fixed on screen while the camera follows you,
+     * so the mouse can be waiting there before the obstacle arrives. The next spot is ringed and linked to the one
+     * after it; the ring turns to the ready color once the previous obstacle's XP lands and the next click will count.
      */
-    private void drawSpots(Graphics2D g, ViewBook.View view, int next)
+    private void drawSpots(Graphics2D g, int next)
     {
         int steps = plugin.getCourse().stepCount();
-        Point2D.Double nextSpot = screenSpot(view, next);
-        Point2D.Double afterSpot = screenSpot(view, (next + 1) % steps);
+        int after = (next + 1) % steps;
+        Point2D.Double nextSpot = screenSpot(next);
+        Point2D.Double afterSpot = screenSpot(after);
         if (nextSpot != null && afterSpot != null)
         {
             g.setColor(LensPalette.alpha(config.routeColor(), 160));
@@ -99,12 +103,13 @@ final class ObstacleOverlay extends Overlay
         }
         for (int step = 0; step < steps; step++)
         {
-            Point2D.Double spot = step == next ? nextSpot : screenSpot(view, step);
-            if (spot == null || (step != next && step != (next + 1) % steps && !config.showAll()))
+            Point2D.Double spot = step == next ? nextSpot : step == after ? afterSpot : config.showAll() ? screenSpot(step) : null;
+            if (spot == null)
             {
                 continue;
             }
-            Color color = step == next ? config.nextColor() : config.routeColor();
+            Color color = step != next ? config.routeColor()
+                : plugin.getRecorder().ready() ? config.readyColor() : config.nextColor();
             g.setColor(step == next ? color : LensPalette.alpha(color, 170));
             g.fill(new Ellipse2D.Double(spot.x - 2.5, spot.y - 2.5, 5, 5));
             if (step == next)
@@ -115,10 +120,44 @@ final class ObstacleOverlay extends Overlay
         }
     }
 
-    private Point2D.Double screenSpot(ViewBook.View view, int step)
+    /**
+     * Projects the obstacle as the camera would see it from its usual focal point at click time: moving the camera
+     * by some offset moves the scene by minus that offset, so this projects the current focal point minus the learned
+     * offset, then shifts by the gap between the obstacle's base point and its clickbox center.
+     */
+    private Point2D.Double screenSpot(int step)
     {
-        Point2D.Double spot = view.spot(step);
-        return spot == null ? null : Lens.toScreen(client, spot);
+        double[] offset = plugin.getBook().focalOffset(step);
+        TileObject obstacle = obstacleAt(step);
+        if (offset == null || obstacle == null)
+        {
+            return null;
+        }
+        Point spot = Perspective.localToCanvas(client, (int) Math.round(client.getCameraFocalPointX() - offset[0]),
+            (int) Math.round(client.getCameraFocalPointY() - offset[1]), (int) Math.round(client.getCameraFocalPointZ() - offset[2]));
+        if (spot == null)
+        {
+            return null;
+        }
+        LocalPoint at = obstacle.getLocalLocation();
+        Point base = Perspective.localToCanvas(client, at.getX(), at.getY(), obstacle.getZ());
+        Shape clickbox = obstacle.getClickbox();
+        if (base == null || clickbox == null)
+        {
+            return new Point2D.Double(spot.getX(), spot.getY());
+        }
+        Rectangle bounds = clickbox.getBounds();
+        return new Point2D.Double(spot.getX() + bounds.getCenterX() - base.getX(), spot.getY() + bounds.getCenterY() - base.getY());
+    }
+
+    private TileObject obstacleAt(int step)
+    {
+        int plane = client.getTopLevelWorldView().getPlane();
+        return plugin.getObstacles().entrySet().stream()
+            .filter(entry -> entry.getValue() == step && entry.getKey().getPlane() == plane)
+            .map(Map.Entry::getKey)
+            .findFirst()
+            .orElse(null);
     }
 
     private static void badge(Graphics2D g, int number, double centerX, double centerY, Color color, boolean filled)

@@ -34,7 +34,15 @@ public interface RooftopLensConfig extends Config
     }
 
     @Alpha
-    @ConfigItem(keyName = "routeColor", name = "Other obstacles", position = 4,
+    @ConfigItem(keyName = "readyColor", name = "Click now", position = 4,
+        description = "Color of the next click spot once the previous obstacle is done and the click will count")
+    default Color readyColor()
+    {
+        return LensPalette.GO;
+    }
+
+    @Alpha
+    @ConfigItem(keyName = "routeColor", name = "Other obstacles", position = 5,
         description = "Color of other obstacles and their click spots")
     default Color routeColor()
     {
