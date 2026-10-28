@@ -22,13 +22,16 @@ local RuneLite config.
    confirm it, so one lucky lap can't win, and then says **Calibrated**. When you're on the view,
    the ring centers and turns green.
 3. Run a lap from the first obstacle to the last without touching the camera. While a lap runs, the card holds
-   the view you started in. A finished lap shows **Lap learned**. If the camera leaves that view, the card shows
-   **Camera moved, lap dropped**; the next lap starts when you click the first obstacle again. Camera pitch above
-   the game's standard limit counts as the limit, because the game pulls expanded pitch back there mid-course.
-4. In any view you've lapped, the screen shows where each obstacle usually is when you click it: a ring on the
-   next one, and a dashed line to the one after. The spots are fixed on screen, not on the obstacle, so you can
-   move the mouse there during the animation and click as soon as the obstacle arrives. They follow window
-   resizes and zoom.
+   the view you started in. A step counts when its Agility XP lands, so clicking the next obstacle too early,
+   while the game ignores it, doesn't skip ahead. A finished lap shows **Lap learned**. If the camera leaves that
+   view before your last click, the card shows **Camera moved, lap dropped**; the next lap starts when you click
+   the first obstacle again. Camera pitch above the game's standard limit counts as the limit, because the game
+   pulls expanded pitch back there mid-course.
+4. After a lap, the screen shows where each obstacle will be when you usually click it: a ring on the next one,
+   and a dashed line to the one after. The ring stays fixed on screen while the camera follows you, so you can
+   move the mouse there during the animation. It's amber while the current obstacle runs and turns green when its
+   XP lands and your click will count. Spots are learned per course, so they work in every view, pitch, zoom and
+   window size.
 
 The next obstacle is filled amber. Other obstacles are outlined in teal with their step number.
 
@@ -39,6 +42,7 @@ The next obstacle is filled amber. Other obstacles are outlined in teal with the
 | Show click spots | on | Mark the screen spot where you usually click each obstacle, in views you've lapped |
 | Outline every obstacle | on | Outline all visible obstacles and show every click spot, not only the next two |
 | Next obstacle | amber | Color of the obstacle to click next |
+| Click now | green | Color of the next click spot once your click will count |
 | Other obstacles | teal | Color of other obstacles and their click spots |
 
 ## Courses
