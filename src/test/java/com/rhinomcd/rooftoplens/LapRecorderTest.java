@@ -106,6 +106,21 @@ public class LapRecorderTest
     }
 
     @Test
+    public void preClickingTheFirstObstacleWhileTheLastIsHeldEarlyKeepsTheLap()
+    {
+        LapRecorder recorder = new LapRecorder(3);
+        cross(recorder, 0, CLICK, VIEW);
+        recorder.obstacleClicked(1, CLICK, VIEW);
+        recorder.obstacleClicked(2, click(0.6), VIEW);
+        recorder.agilityXpGained();
+        recorder.obstacleClicked(0, click(0.4), VIEW);
+        assertEquals(LapRecorder.Outcome.COMPLETED, recorder.agilityXpGained());
+        assertEquals(0.6, recorder.lastLap().clicks[2].lens.x, 0);
+        recorder.agilityXpGained();
+        assertEquals(1, recorder.nextStep());
+    }
+
+    @Test
     public void ignoresMisclicksAndRepeatClicks()
     {
         LapRecorder recorder = new LapRecorder(3);

@@ -33,12 +33,13 @@ final class LapRecorder
 
     Outcome obstacleClicked(int step, Click click, CameraPose camera)
     {
+        boolean takenEarly = next >= 0 && next < steps && early != null && !awaitingXp && step == (next + 1) % steps;
         if (step == 0 && next == steps)
         {
             hold(click, camera);
             return Outcome.NONE;
         }
-        if (step == 0 && next != 0 && next != 1)
+        if (step == 0 && next != 0 && next != 1 && !takenEarly)
         {
             clicks = new Click[steps];
             next = 0;
@@ -46,7 +47,6 @@ final class LapRecorder
             awaitingXp = true;
             return Outcome.NONE;
         }
-        boolean takenEarly = step == next + 1 && early != null && !awaitingXp;
         if (next < 0 || (step != next && !takenEarly))
         {
             return Outcome.NONE;
