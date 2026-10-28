@@ -14,6 +14,7 @@ def pluginMainClass = 'com.rhinomcd.rooftoplens.RooftopLensPluginTest'
 dependencies {
     compileOnly group: 'net.runelite', name: 'client', version: runeLiteVersion
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.mockito:mockito-core:4.11.0'
     testImplementation group: 'net.runelite', name: 'client', version: runeLiteVersion
     testImplementation group: 'net.runelite', name: 'jshell', version: runeLiteVersion
 }
@@ -42,4 +43,12 @@ tasks.named('jar', Jar) {
         from 'LICENSE'
         from 'THIRD_PARTY_NOTICES.md'
     }
+}
+
+tasks.register('replay', JavaExec) {
+    description = 'Replays a Rooftop Lens recording: ./gradlew replay -Precording=<file.jsonl>'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.rhinomcd.rooftoplens.ReplayMain'
+    args project.findProperty('recording') ?: '', layout.buildDirectory.dir('replay').get().asFile.path
+    systemProperty 'java.awt.headless', 'true'
 }
