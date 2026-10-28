@@ -1,6 +1,6 @@
 # View scoring
 
-A view is a snapped yaw and pitch. Each saved view keeps the last 8 clicks per obstacle, as offsets from the viewport center divided by `client.getScale()`, so window resizes and zoom don't change them. Its score is the median lap's cyclic distance through its clicks. Views are compared at the calibration pitch, the pitch of the latest lap. The card suggests untried quarter turns, then 45° and 22.5° either side of the best, then the best view, and says "Calibrated" once none are left. Views persist in the RuneLite config.
+A view is a snapped yaw and pitch. Each saved view keeps the last 8 clicks per obstacle, as offsets from the viewport center divided by `client.getScale()`, so window resizes and zoom don't change them. Its score is the median lap's cyclic distance through its clicks. Views are compared at the calibration pitch, the pitch of the latest lap. The card suggests untried quarter turns, then 45° either side of the best quarter turn, then 22.5° either side of the best of those (at most 8 views, so noisy laps cannot extend it), then the best view, and says "Calibrated" once none are left. Views persist in the RuneLite config.
 
 ## Sub-features
 
