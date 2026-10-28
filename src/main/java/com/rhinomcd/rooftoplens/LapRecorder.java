@@ -91,18 +91,12 @@ final class LapRecorder
 
     static final class Click
     {
-        /**
-         * Offset from the viewport center divided by the projection scale. Resizing the window or zooming scales
-         * the scene about that center, so this stays put for a fixed yaw and pitch.
-         */
+        /** Where the click landed, in {@link Lens} units. */
         final Point2D.Double lens;
-        /** Position inside the obstacle's clickbox bounds, as fractions; null when the box wasn't on screen. */
-        final Point2D.Double onBox;
 
-        Click(Point2D.Double lens, Point2D.Double onBox)
+        Click(Point2D.Double lens)
         {
             this.lens = lens;
-            this.onBox = onBox;
         }
     }
 

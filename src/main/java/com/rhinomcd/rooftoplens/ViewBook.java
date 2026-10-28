@@ -35,12 +35,7 @@ final class ViewBook
         view.learned = views.values().stream().mapToLong(other -> other.learned).max().orElse(0) + 1;
         for (int step = 0; step < steps; step++)
         {
-            LapRecorder.Click click = lap.clicks[step];
-            keep(view.clicks.get(step), click.lens);
-            if (click.onBox != null)
-            {
-                keep(view.boxClicks.get(step), click.onBox);
-            }
+            keep(view.clicks.get(step), lap.clicks[step].lens);
         }
     }
 
@@ -141,21 +136,18 @@ final class ViewBook
         int laps;
         /** Order of this view's latest lap among all views; higher is more recent. */
         long learned;
-        /** Per step, the most recent clean-lap clicks in lens units {x, y} (see {@link LapRecorder.Click#lens}). */
+        /** Per step, the most recent clean-lap clicks in {@link Lens} units {x, y}. */
         final List<List<double[]>> clicks;
-        /** Per step, the same clicks as fractions of the obstacle's clickbox bounds. Placed on the live obstacle. */
-        final List<List<double[]>> boxClicks;
 
         View(int steps)
         {
             clicks = emptySteps(steps);
-            boxClicks = emptySteps(steps);
         }
 
-        /** Median click per step inside the obstacle's clickbox bounds, or null if none was recorded. */
-        Point2D.Double boxSpot(int step)
+        /** Where on screen, in lens units, this step is usually clicked; null if never. */
+        Point2D.Double spot(int step)
         {
-            List<double[]> kept = boxClicks.get(step);
+            List<double[]> kept = clicks.get(step);
             return kept.isEmpty() ? null : median(kept);
         }
 

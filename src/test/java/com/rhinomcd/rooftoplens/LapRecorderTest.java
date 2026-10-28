@@ -14,7 +14,7 @@ public class LapRecorderTest
 
     private static LapRecorder.Click click(double x)
     {
-        return new LapRecorder.Click(new Point2D.Double(x, x), null);
+        return new LapRecorder.Click(new Point2D.Double(x, x));
     }
 
     @Test

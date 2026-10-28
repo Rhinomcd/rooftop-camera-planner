@@ -11,6 +11,7 @@ import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.Stroke;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.util.Map;
 import javax.inject.Inject;
@@ -24,6 +25,8 @@ final class ObstacleOverlay extends Overlay
 {
     private static final Stroke OUTLINE = new BasicStroke(1.5f);
     private static final Stroke NEXT_OUTLINE = new BasicStroke(2.5f);
+    private static final Stroke ROUTE_LINE = new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 1f,
+        new float[] { 4f, 4f }, 0f);
     private static final Font BADGE_FONT = new Font(Font.SANS_SERIF, Font.BOLD, 11);
 
     private final Client client;
@@ -71,27 +74,52 @@ final class ObstacleOverlay extends Overlay
             g.draw(clickbox);
             Rectangle bounds = clickbox.getBounds();
             badge(g, step + 1, bounds.getCenterX(), bounds.getMinY() - 10, color, isNext);
-            Point2D.Double spot = view == null ? null : view.boxSpot(step);
-            double spotX = spot == null ? 0 : bounds.x + spot.x * bounds.width;
-            double spotY = spot == null ? 0 : bounds.y + spot.y * bounds.height;
-            if (spot != null && clickbox.contains(spotX, spotY))
-            {
-                drawSpot(g, spotX, spotY, color, isNext);
-            }
+        }
+        if (view != null)
+        {
+            drawSpots(g, view, next);
         }
         return null;
     }
 
-    /** Where you usually click this obstacle in this view. */
-    private static void drawSpot(Graphics2D g, double x, double y, Color color, boolean isNext)
+    /**
+     * Where you usually click each obstacle in this view, fixed on screen rather than on the obstacle, so the mouse
+     * can be waiting there before the obstacle arrives. The next spot is ringed and linked to the one after it.
+     */
+    private void drawSpots(Graphics2D g, ViewBook.View view, int next)
     {
-        g.setColor(color);
-        if (isNext)
+        int steps = plugin.getCourse().stepCount();
+        Point2D.Double nextSpot = screenSpot(view, next);
+        Point2D.Double afterSpot = screenSpot(view, (next + 1) % steps);
+        if (nextSpot != null && afterSpot != null)
         {
-            g.setStroke(NEXT_OUTLINE);
-            g.draw(new Ellipse2D.Double(x - 7, y - 7, 14, 14));
+            g.setColor(LensPalette.alpha(config.routeColor(), 160));
+            g.setStroke(ROUTE_LINE);
+            g.draw(new Line2D.Double(nextSpot, afterSpot));
         }
-        g.fill(new Ellipse2D.Double(x - 2.5, y - 2.5, 5, 5));
+        for (int step = 0; step < steps; step++)
+        {
+            Point2D.Double spot = step == next ? nextSpot : screenSpot(view, step);
+            if (spot == null || (step != next && step != (next + 1) % steps && !config.showAll()))
+            {
+                continue;
+            }
+            Color color = step == next ? config.nextColor() : config.routeColor();
+            g.setColor(step == next ? color : LensPalette.alpha(color, 170));
+            g.fill(new Ellipse2D.Double(spot.x - 2.5, spot.y - 2.5, 5, 5));
+            if (step == next)
+            {
+                g.setStroke(NEXT_OUTLINE);
+                g.draw(new Ellipse2D.Double(spot.x - 9, spot.y - 9, 18, 18));
+                badge(g, step + 1, spot.x + 16, spot.y - 12, color, true);
+            }
+        }
+    }
+
+    private Point2D.Double screenSpot(ViewBook.View view, int step)
+    {
+        Point2D.Double spot = view.spot(step);
+        return spot == null ? null : Lens.toScreen(client, spot);
     }
 
     private static void badge(Graphics2D g, int number, double centerX, double centerY, Color color, boolean filled)

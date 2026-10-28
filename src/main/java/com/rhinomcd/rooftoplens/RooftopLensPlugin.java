@@ -252,11 +252,11 @@ public class RooftopLensPlugin extends Plugin
             .filter(shape -> mouse != null && shape.contains(mouse.getX(), mouse.getY()))
             .findFirst()
             .orElse(clickboxes.isEmpty() ? null : clickboxes.get(0));
-        Rectangle bounds = clickbox == null ? null : clickbox.getBounds();
         double x;
         double y;
         if (clickbox != null && (mouse == null || !clickbox.contains(mouse.getX(), mouse.getY())))
         {
+            Rectangle bounds = clickbox.getBounds();
             x = bounds.getCenterX();
             y = bounds.getCenterY();
         }
@@ -269,16 +269,8 @@ public class RooftopLensPlugin extends Plugin
         {
             return null;
         }
-        Point2D.Double onBox = bounds == null || bounds.width == 0 || bounds.height == 0 ? null
-            : new Point2D.Double((x - bounds.x) / bounds.width, (y - bounds.y) / bounds.height);
-        double scale = client.getScale();
-        if (scale <= 0)
-        {
-            return null;
-        }
-        double centerX = client.getViewportXOffset() + client.getViewportWidth() / 2.0;
-        double centerY = client.getViewportYOffset() + client.getViewportHeight() / 2.0;
-        return new LapRecorder.Click(new Point2D.Double((x - centerX) / scale, (y - centerY) / scale), onBox);
+        Point2D.Double lens = Lens.fromScreen(client, x, y);
+        return lens == null ? null : new LapRecorder.Click(lens);
     }
 
     private ViewBook loadBook(Course course)
@@ -298,8 +290,7 @@ public class RooftopLensPlugin extends Plugin
             }
             views.forEach((key, view) ->
             {
-                if (view != null && reachableViewKey(key) && validSteps(view.clicks, course.stepCount())
-                    && validSteps(view.boxClicks, course.stepCount()))
+                if (view != null && reachableViewKey(key) && validSteps(view.clicks, course.stepCount()))
                 {
                     loaded.views.put(key, view);
                 }

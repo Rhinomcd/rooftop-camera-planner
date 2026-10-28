@@ -24,8 +24,10 @@ local RuneLite config.
    the view you started in. A finished lap shows **Lap learned**. If the camera leaves that view, the card shows
    **Camera moved, lap dropped**; the next lap starts when you click the first obstacle again. Camera pitch above
    the game's standard limit counts as the limit, because the game pulls expanded pitch back there mid-course.
-4. In any view you've lapped, each obstacle shows a dot where you usually click it, with a ring on the next one.
-   The dot is placed on the obstacle's live clickbox, so it stays on the obstacle as the camera follows you.
+4. In any view you've lapped, the screen shows where you usually click each obstacle: a ring and step number on
+   the next one, and a dashed line to the one after. The spots are fixed on screen, not on the obstacle, so you can
+   move the mouse there during the animation and click as soon as the obstacle arrives. They follow window
+   resizes and zoom.
 
 The next obstacle is filled amber. Other obstacles are outlined in teal with their step number.
 
@@ -33,8 +35,8 @@ The next obstacle is filled amber. Other obstacles are outlined in teal with the
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| Show click spots | on | Mark where you usually click each obstacle, in views you've lapped |
-| Outline every obstacle | on | Outline all visible obstacles, not only the next one |
+| Show click spots | on | Mark the screen spot where you usually click each obstacle, in views you've lapped |
+| Outline every obstacle | on | Outline all visible obstacles and show every click spot, not only the next two |
 | Next obstacle | amber | Color of the obstacle to click next |
 | Other obstacles | teal | Color of other obstacles and their click spots |
 
