@@ -89,6 +89,22 @@ public class ViewBookTest
     }
 
     @Test
+    public void aLuckyLapAfterTheSearchDoesNotSendItWandering()
+    {
+        ViewBook book = new ViewBook(2);
+        CameraPose camera = new CameraPose(100, 384);
+        learnQuarterTurns(book, 384);
+        book.record(lap(new CameraPose(256, 384), 0.3, 0.7));
+        book.record(lap(new CameraPose(768, 384), 0.45, 0.55));
+        book.record(lap(new CameraPose(640, 384), 0.3, 0.7));
+        book.record(lap(new CameraPose(896, 384), 0.3, 0.7));
+        book.record(lap(new CameraPose(896, 384), 0.5, 0.5));
+        book.record(lap(new CameraPose(896, 384), 0.5, 0.5));
+        assertEquals("896:384", book.bestKey(camera));
+        assertEquals("896:384", book.suggestion(camera).viewKey());
+    }
+
+    @Test
     public void viewsAreComparedAtTheLatestLapsPitch()
     {
         ViewBook book = new ViewBook(2);

@@ -88,26 +88,41 @@ final class ViewBook
 
     /**
      * The view to try next, at the calibration pitch: an untried quarter turn nearest the current yaw, then untried
-     * yaws 45 and then 22.5 degrees either side of the best view, then the best view itself.
+     * yaws 45 degrees either side of the best quarter turn, then 22.5 degrees either side of the best so far, then
+     * the best view itself. Each refinement centers on views already lapped, so a noisy lap can't send the search
+     * wandering: it tries at most eight views.
      */
     CameraPose suggestion(CameraPose current)
     {
         CameraPose home = new CameraPose(current.yaw, calibrationPitch(current));
-        CameraPose untried = nearestUntried(home, QUARTER_TURNS);
-        if (untried != null)
+        List<Integer> searched = new ArrayList<>();
+        for (int yaw : QUARTER_TURNS)
         {
-            return untried;
+            searched.add(yaw);
         }
-        CameraPose best = CameraPose.fromViewKey(bestKey(current));
+        CameraPose untried = nearestUntried(home, searched);
         for (int spread : REFINE_SPREADS)
         {
-            untried = nearestUntried(home, new int[] { best.yaw - spread, best.yaw + spread });
             if (untried != null)
             {
                 return untried;
             }
+            int center = bestAmong(home.pitch, searched);
+            List<Integer> refine = Arrays.asList(center - spread, center + spread);
+            untried = nearestUntried(home, refine);
+            searched.addAll(refine);
         }
-        return best;
+        return untried != null ? untried : CameraPose.fromViewKey(bestKey(current));
+    }
+
+    private int bestAmong(int pitch, List<Integer> yaws)
+    {
+        return yaws.stream()
+            .map(yaw -> new CameraPose(yaw, pitch).viewKey())
+            .filter(key -> views.containsKey(key) && views.get(key).keptLaps() > 0)
+            .min(Comparator.comparingDouble(key -> views.get(key).route()))
+            .map(key -> CameraPose.fromViewKey(key).yaw)
+            .orElseThrow(IllegalStateException::new);
     }
 
     /** True once every view the search wants has a lap and the best view has been confirmed over several. */
@@ -123,7 +138,7 @@ final class ViewBook
         return best != null && suggestion(current).viewKey().equals(best);
     }
 
-    private CameraPose nearestUntried(CameraPose home, int[] yaws)
+    private CameraPose nearestUntried(CameraPose home, List<Integer> yaws)
     {
         CameraPose nearest = null;
         for (int yaw : yaws)
