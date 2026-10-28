@@ -1,172 +1,68 @@
-<p align="center"><img src="icon.png" width="112" alt="Rooftop Camera Planner icon"></p>
-<h1 align="center">Rooftop Camera Planner</h1>
-<p align="center">A local RuneLite camera optimizer for rooftop Agility.<br>Less camera fiddling. Shorter mouse routes. Every click still belongs to you.</p>
+<p align="center"><img src="icon.png" width="96" alt="Rooftop Lens icon"></p>
+<h1 align="center">Rooftop Lens</h1>
+<p align="center">Find the rooftop Agility camera view that keeps your clicks closest together.</p>
 
-<p align="center">
-  <img alt="Java 11" src="https://img.shields.io/badge/Java-11-2f6f8f">
-  <img alt="RuneLite Plugin" src="https://img.shields.io/badge/RuneLite-Plugin-c89b3c">
-  <img alt="Local only" src="https://img.shields.io/badge/data-local%20only-35bfa4">
-  <img alt="No automation" src="https://img.shields.io/badge/input%20automation-none-596b78">
-</p>
+Rooftop Lens watches your laps. Each lap you finish without moving the camera is filed under that camera view,
+along with where you clicked each obstacle. A view's score is the distance your mouse travels from obstacle to
+obstacle for one lap. The shortest route wins. Distances are measured relative to the game's projection, so
+resizing the window or zooming doesn't change them, and zoom isn't part of a view.
 
----
+The plugin never moves the camera, mouse, or character, and never clicks for you. Everything is stored in your
+local RuneLite config.
 
-Most rooftop plugins show you **what** to click. This one also helps you find a camera position where those clicks are packed as closely together as your client, display, camera limits, and course geometry allow.
+## Using it
 
-It watches complete laps, measures the obstacle clickboxes that RuneLite already exposes, tests practical camera views, and saves the best verified layout for each course. When that camera is aligned, the plugin draws numbered `M` markers over the safe screen regions for the route.
+1. Go to a rooftop course. A card in RuneLite's overlay style appears with the course name and your lap
+   progress.
+2. Follow the viewfinder: the orange ring sits where the camera should point. It sits left or right for rotation
+   and up or down for tilt. The text says the same thing in words. **Try this view** is a view you haven't lapped
+   yet: the four quarter turns, then 45° and 22.5° either side of the best one. **Best view** is your shortest
+   route so far. Views are compared at the pitch of your latest lap, so if you tilt away the card asks you to tilt
+   back. Once every view the search wants has a lap, the card asks for **3 laps** on the best view to
+   confirm it, so one lucky lap can't win, and then says **Calibrated**. When you're on the view,
+   the ring centers and turns green.
+3. Run a lap from the first obstacle to the last without touching the camera. While a lap runs, the card holds
+   the view you started in. A step counts when its Agility XP lands, so clicking the next obstacle too early,
+   while the game ignores it, doesn't skip ahead. A finished lap shows **Lap learned**. If the camera leaves that
+   view before your last click, the card shows **Camera moved, lap dropped**; the next lap starts when you click
+   the first obstacle again. Camera pitch above the game's standard limit counts as the limit, because the game
+   pulls expanded pitch back there mid-course.
+4. After a lap, the screen shows where each obstacle will be when you usually click it: a ring on the next one,
+   and a dashed line to the one after. The ring stays fixed on screen while the camera follows you, so you can
+   move the mouse there during the animation. It's amber while the current obstacle runs and turns green when its
+   XP lands and your click will count. Spots are learned per view and camera pitch, and hold at any zoom and
+   window size.
 
-![Canifis calibration radar](assets/canifis-calibration.png)
+The next obstacle is filled amber. Other obstacles are outlined in teal with their step number.
 
-## What makes it different
+## Settings
 
-| Ordinary obstacle highlighting | Rooftop Camera Planner |
-| --- | --- |
-| Highlights the next obstacle | Learns a complete ordered screen route |
-| Uses the camera you already chose | Compares reachable yaw, pitch, and zoom candidates |
-| Treats clickboxes as points | Optimizes across the full legal area of every clickbox |
-| Starts over when something is odd | Preserves valid history and rejects contaminated laps |
-| Assumes one layout fits everyone | Stores a separate local profile for your setup |
+| Setting | Default | What it does |
+| --- | --- | --- |
+| Show click spots | on | Mark the screen spot where you usually click each obstacle, in views you've lapped |
+| Outline every obstacle | on | Outline all visible obstacles and show every click spot, not only the next two |
+| Next obstacle | amber | Color of the obstacle to click next |
+| Click now | green | Color of the next click spot once your click will count |
+| Other obstacles | teal | Color of other obstacles and their click spots |
 
-The plugin does **not** move the camera, mouse, or character. It does not click, queue actions, or send gameplay data anywhere. It is a visual planning tool.
+## Courses
 
-## How it works
+Draynor Village, Al Kharid, Varrock, Canifis, Falador, Seers' Village, Pollnivneach, Rellekka, Ardougne.
 
-<p align="center"><img src="assets/optimization-flow.svg" alt="Calibration and optimization flow" width="900"></p>
+## Credits
 
-1. **Map the course.** Each supported rooftop is represented as an ordered set of logical obstacles. Alternate object IDs, such as the two valid Falador ledges, belong to the same logical step.
-2. **Collect a clean lap.** The plugin records one click region per obstacle. Skipped steps, falls, camera movement, room-to-roof settling, and incidental clicks do not become optimization evidence.
-3. **Test reachable views.** Calibration explores camera candidates inside the limits your client can actually reach. It learns those limits instead of assuming expanded pitch or a particular zoom range.
-4. **Score the geometry.** Every candidate is compared by overlap, uncovered gap, and the shortest cyclic route through legal click points.
-5. **Verify before drawing.** Saved markers are shown only when their layout, canvas size, camera position, and verification state agree with the current client.
+Rooftop Lens is a fork and rewrite of [Rooftop Camera Planner](https://github.com/MichaelRVP/rooftop-camera-planner)
+by MVP IT Solutions ([MichaelRVP](https://github.com/MichaelRVP)). That project came up with the idea of learning
+a low-travel camera view from your laps and marking the click route, and its course table is carried over here.
+Course data traces back to RuneLite's Agility plugin. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-## The math, without pretending it is magic
+## License
 
-For a course with marker rectangles `R0 ... Rn-1`, the useful question is not "how far apart are the rectangle centers?" The mouse can click **anywhere inside** each rectangle. The real objective is:
+[BSD 2-Clause](LICENSE). The original copyright notice from Rooftop Camera Planner is kept alongside this fork's.
 
-```text
-choose pi inside Ri for every obstacle i
+## Development
 
-minimize  sum distance(pi, p(i+1))
-          i=0..n-1
-
-where pn = p0 because a rooftop route repeats
 ```
-
-That is a constrained cyclic route problem. The solver starts at each marker's center, follows the travel gradient, and clamps every candidate point back inside its legal rectangle. If every marker shares a common intersection, the answer is exactly `0 px`: one cursor position can reach the whole route.
-
-<p align="center"><img src="assets/route-math.svg" alt="Marker overlap and attainable route illustration" width="900"></p>
-
-The plugin tracks four related measurements:
-
-- **Overlapping transitions** - consecutive route markers that already touch.
-- **Overlap area** - how much usable shared area those transitions provide.
-- **Marker gap** - unavoidable edge-to-edge distance when markers do not touch.
-- **Attainable travel** - the optimized complete loop through legal click points, including the final obstacle back to the first.
-
-Camera candidates are compared with overlap first, then overlap area, smaller gap, and finally travel. Representative layouts use attainable travel as the dominant cost so a large but badly positioned clickbox cannot win by accident.
-
-For implementation details and equations, see [The optimizer](docs/MATH.md).
-
-## Calibration
-
-Initial calibration uses **six valid laps**. These are evidence laps, not simply six trips around the roof. A lap is excluded when it would teach the plugin the wrong thing, including:
-
-- an obstacle is skipped or visited out of order;
-- the player falls from the course;
-- the camera changes during measurement;
-- the game forces a room-to-roof camera transition;
-- a target exceeds the camera limits available on that client;
-- a clickbox is missing or the screen layout is not yet settled.
-
-Marks of Grace are ignored as route steps. They do not erase otherwise useful history. After calibration, **Refine camera (+2 laps)** asks for two additional evidence laps without throwing away the views already measured.
-
-## Reading the radar
-
-| Display | Meaning |
-| --- | --- |
-| `CAMERA LOCKED` | Yaw, pitch, and zoom match the verified saved view |
-| Radar dot | Direction and scale of the yaw/pitch adjustment |
-| Zoom rail | Zoom in/out adjustment still required |
-| `ROUTE` | Progress through the current logical obstacle sequence |
-| `CALIBRATION` | Accepted evidence laps, not raw laps attempted |
-| `BEST OBSERVED` | Best overlapping route transitions found |
-| `MARKER GAP` | Remaining edge-to-edge route distance |
-| `TESTED VIEWS` | Distinct camera candidates with recorded evidence |
-| `LAST LAP` | Observed cursor travel for the latest accepted lap |
-
-## Supported rooftop courses
-
-| Course | Logical steps | Notes |
-| --- | ---: | --- |
-| Draynor Village | 7 | Full ordered route |
-| Al Kharid | 8 | Full ordered route |
-| Varrock | 9 | Full ordered route |
-| Canifis | 8 | Full ordered route |
-| Falador | 13 | Alternate ledges are one logical step |
-| Seers' Village | 6 | Full ordered route |
-| Pollnivneach | 9 | Full ordered route |
-| Rellekka | 7 | Full ordered route |
-| Ardougne | 7 | Full ordered route |
-
-Every route has regression coverage for exact step count, ordering, wraparound, and complete-lap acceptance. Falador additionally runs complete tests through both legal ledge variants.
-
-## Privacy and fair-play boundary
-
-Everything learned by the plugin stays in local RuneLite configuration.
-
-**It reads:** course region, obstacle IDs, clickbox geometry, canvas dimensions, camera state, route progression, and local mouse position while measuring.
-
-**It never does:** mouse movement, camera movement, clicks, menu selection, character control, network sync, account login, or gameplay upload.
-
-## Install
-
-When approved for the RuneLite Plugin Hub:
-
-1. Open RuneLite settings.
-2. Open **Plugin Hub**.
-3. Search for **Rooftop Camera Planner**.
-4. Install and enable it.
-
-For a local development client:
-
-```powershell
-.\gradlew.bat run
+./gradlew test        # unit tests
+./gradlew run         # RuneLite dev client with the plugin loaded
 ```
-
-## Troubleshooting
-
-### My lap did not count
-
-The lap was probably not clean optimization evidence. Finish one full route without changing the camera. If the course offers alternate objects, either valid object should count as its shared logical step.
-
-### The obstacle outlines appear but the M-markers do not
-
-The scene route is known, but the saved screen layout has not passed its current verification gate. Align the requested camera and complete the verification lap. The plugin deliberately refuses to draw stale click targets.
-
-### The requested camera position is unreachable
-
-Move as far as your client permits. Repeated movement at a real limit teaches the bounds tracker that the target is unreachable, allowing calibration to select another candidate.
-
-### A game or RuneLite update changed the course
-
-Open an issue with the course, RuneLite version, and a screenshot. Do not erase your profile first; the existing evidence is useful for diagnosis.
-
-## Build and verify
-
-```powershell
-.\gradlew.bat clean test build
-```
-
-The project targets Java 11 and RuneLite `latest.release`. The suite covers camera guidance, reachability, forced shifts, course progression, lap scoring, screen-marker scaling and validation, search-history persistence, compound-view prediction, and the constrained route optimizer.
-
-See [Testing and release proof](docs/TESTING.md) for the full verification map.
-
-## Project notes
-
-- [Changelog](CHANGELOG.md)
-- [Optimizer and scoring model](docs/MATH.md)
-- [Testing and release proof](docs/TESTING.md)
-- [Third-party notices](THIRD_PARTY_NOTICES.md)
-- [BSD 2-Clause License](LICENSE)
-
-Built by **MVP IT Solutions** because rooftop Agility should require less camera work, not more.
