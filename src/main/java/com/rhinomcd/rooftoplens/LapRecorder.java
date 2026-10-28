@@ -139,16 +139,13 @@ final class LapRecorder
     {
         /** Where the clicked obstacle sat on screen, in {@link Lens} units. Scores the view. */
         final Point2D.Double lens;
-        /**
-         * The camera's focal point minus the obstacle's position, {x, y, z} in local units: where the camera was,
-         * relative to the obstacle, when it was clicked. Null when the obstacle wasn't on screen.
-         */
-        final double[] focalOffset;
+        /** Where the camera stood relative to the obstacle; see {@link ClickSpot#offset}. Null when the obstacle wasn't on screen. */
+        final double[] cameraOffset;
 
-        Click(Point2D.Double lens, double[] focalOffset)
+        Click(Point2D.Double lens, double[] cameraOffset)
         {
             this.lens = lens;
-            this.focalOffset = focalOffset;
+            this.cameraOffset = cameraOffset;
         }
     }
 

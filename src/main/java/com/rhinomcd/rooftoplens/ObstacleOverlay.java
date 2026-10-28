@@ -16,10 +16,7 @@ import java.awt.geom.Point2D;
 import java.util.Map;
 import javax.inject.Inject;
 import net.runelite.api.Client;
-import net.runelite.api.Perspective;
-import net.runelite.api.Point;
 import net.runelite.api.TileObject;
-import net.runelite.api.coords.LocalPoint;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -85,8 +82,8 @@ final class ObstacleOverlay extends Overlay
     }
 
     /**
-     * Where each obstacle will be on screen when you usually click it, fixed on screen while the camera follows you,
-     * so the mouse can be waiting there before the obstacle arrives. The next spot is ringed and linked to the one
+     * Where each obstacle will be on screen when you usually click it (see {@link ClickSpot}), so the mouse can be
+     * waiting there before the obstacle arrives. The next spot is ringed and linked to the one
      * after it; the ring turns to the ready color once the previous obstacle's XP lands and the next click will count.
      */
     private void drawSpots(Graphics2D g, int next)
@@ -120,44 +117,10 @@ final class ObstacleOverlay extends Overlay
         }
     }
 
-    /**
-     * Projects the obstacle as the camera would see it from its usual focal point at click time: moving the camera
-     * by some offset moves the scene by minus that offset, so this projects the current focal point minus the learned
-     * offset, then shifts by the gap between the obstacle's base point and its clickbox center.
-     */
     private Point2D.Double screenSpot(int step)
     {
-        double[] offset = plugin.getBook().focalOffset(step);
-        TileObject obstacle = obstacleAt(step);
-        if (offset == null || obstacle == null)
-        {
-            return null;
-        }
-        Point spot = Perspective.localToCanvas(client, (int) Math.round(client.getCameraFocalPointX() - offset[0]),
-            (int) Math.round(client.getCameraFocalPointY() - offset[1]), (int) Math.round(client.getCameraFocalPointZ() - offset[2]));
-        if (spot == null)
-        {
-            return null;
-        }
-        LocalPoint at = obstacle.getLocalLocation();
-        Point base = Perspective.localToCanvas(client, at.getX(), at.getY(), obstacle.getZ());
-        Shape clickbox = obstacle.getClickbox();
-        if (base == null || clickbox == null)
-        {
-            return new Point2D.Double(spot.getX(), spot.getY());
-        }
-        Rectangle bounds = clickbox.getBounds();
-        return new Point2D.Double(spot.getX() + bounds.getCenterX() - base.getX(), spot.getY() + bounds.getCenterY() - base.getY());
-    }
-
-    private TileObject obstacleAt(int step)
-    {
-        int plane = client.getTopLevelWorldView().getPlane();
-        return plugin.getObstacles().entrySet().stream()
-            .filter(entry -> entry.getValue() == step && entry.getKey().getPlane() == plane)
-            .map(Map.Entry::getKey)
-            .findFirst()
-            .orElse(null);
+        double[] offset = plugin.getBook().cameraOffset(step);
+        return offset == null ? null : ClickSpot.onScreen(client, offset);
     }
 
     private static void badge(Graphics2D g, int number, double centerX, double centerY, Color color, boolean filled)

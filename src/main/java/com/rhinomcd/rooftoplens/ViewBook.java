@@ -24,15 +24,15 @@ final class ViewBook
     private final int steps;
     final Map<String, View> views = new LinkedHashMap<>();
     /**
-     * Per step, recent {@link LapRecorder.Click#focalOffset}s. They are world positions, so they hold in every
+     * Per step, recent {@link LapRecorder.Click#cameraOffset}s. They are world positions, so they hold in every
      * view and at every pitch and zoom.
      */
-    List<List<double[]>> focalOffsets;
+    List<List<double[]>> cameraOffsets;
 
     ViewBook(int steps)
     {
         this.steps = steps;
-        focalOffsets = emptySteps(steps);
+        cameraOffsets = emptySteps(steps);
     }
 
     void record(LapRecorder.Lap lap)
@@ -44,9 +44,9 @@ final class ViewBook
         {
             LapRecorder.Click click = lap.clicks[step];
             keep(view.clicks.get(step), new double[] { click.lens.x, click.lens.y });
-            if (click.focalOffset != null)
+            if (click.cameraOffset != null)
             {
-                keep(focalOffsets.get(step), click.focalOffset);
+                keep(cameraOffsets.get(step), click.cameraOffset);
             }
         }
     }
@@ -70,10 +70,10 @@ final class ViewBook
         return lists;
     }
 
-    /** The usual {@link LapRecorder.Click#focalOffset} for a step, or null if none was recorded. */
-    double[] focalOffset(int step)
+    /** The usual {@link LapRecorder.Click#cameraOffset} for a step, or null if none was recorded. */
+    double[] cameraOffset(int step)
     {
-        List<double[]> kept = focalOffsets.get(step);
+        List<double[]> kept = cameraOffsets.get(step);
         if (kept.isEmpty())
         {
             return null;

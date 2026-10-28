@@ -24,7 +24,6 @@ import net.runelite.api.Point;
 import net.runelite.api.Skill;
 import net.runelite.api.Tile;
 import net.runelite.api.TileObject;
-import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.DecorativeObjectDespawned;
 import net.runelite.api.events.DecorativeObjectSpawned;
@@ -189,7 +188,7 @@ public class RooftopLensPlugin extends Plugin
         {
             book.record(recorder.lastLap());
             configManager.setConfiguration(RooftopLensConfig.GROUP, viewsKey(course), gson.toJson(book.views));
-            configManager.setConfiguration(RooftopLensConfig.GROUP, spotsKey(course), gson.toJson(book.focalOffsets));
+            configManager.setConfiguration(RooftopLensConfig.GROUP, spotsKey(course), gson.toJson(book.cameraOffsets));
             log.info("Lap learned on {} in view {}", course, recorder.lastLap().camera.viewKey());
             showNotice("Lap learned", false);
         }
@@ -282,16 +281,13 @@ public class RooftopLensPlugin extends Plugin
         }
         Rectangle bounds = clicked.getClickbox().getBounds();
         Point2D.Double lens = Lens.fromScreen(client, bounds.getCenterX(), bounds.getCenterY());
-        LocalPoint at = clicked.getLocalLocation();
-        double[] focalOffset = { client.getCameraFocalPointX() - at.getX(), client.getCameraFocalPointY() - at.getY(),
-            client.getCameraFocalPointZ() - clicked.getZ() };
-        return lens == null ? null : new LapRecorder.Click(lens, focalOffset);
+        return lens == null ? null : new LapRecorder.Click(lens, ClickSpot.offset(client, clicked, bounds));
     }
 
     private ViewBook loadBook(Course course)
     {
         ViewBook loaded = new ViewBook(course.stepCount());
-        loadFocalOffsets(loaded, course);
+        loadCameraOffsets(loaded, course);
         String json = configManager.getConfiguration(RooftopLensConfig.GROUP, viewsKey(course));
         if (json == null || json.isEmpty())
         {
@@ -319,7 +315,7 @@ public class RooftopLensPlugin extends Plugin
         return loaded;
     }
 
-    private void loadFocalOffsets(ViewBook book, Course course)
+    private void loadCameraOffsets(ViewBook book, Course course)
     {
         String json = configManager.getConfiguration(RooftopLensConfig.GROUP, spotsKey(course));
         if (json == null || json.isEmpty())
@@ -329,9 +325,9 @@ public class RooftopLensPlugin extends Plugin
         try
         {
             List<List<double[]>> offsets = gson.fromJson(json, OFFSETS_TYPE);
-            if (validSteps(offsets, course.stepCount(), 3))
+            if (validSteps(offsets, course.stepCount(), ClickSpot.OFFSET_AXES))
             {
-                book.focalOffsets = offsets;
+                book.cameraOffsets = offsets;
             }
         }
         catch (JsonSyntaxException ignored)
