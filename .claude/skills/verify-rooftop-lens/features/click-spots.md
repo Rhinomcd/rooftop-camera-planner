@@ -1,12 +1,13 @@
 # Click spots
 
-Obstacles get numbered badges. The next obstacle is filled amber, and the others are outlined. In a view with learned laps, each obstacle shows a dot where the player usually clicks it, placed inside the live clickbox, with a ring on the next one.
+Obstacles get numbered badges. The next obstacle is filled amber, and the others are outlined. In a view with learned laps, the screen shows where the player usually clicks each step: fixed screen spots in Lens units (viewport-center offset over `client.getScale()`), not attached to the obstacle, so the mouse can wait there during the obstacle animation. The next spot gets a ring and step number, with a dashed line to the one after.
 
 ## Sub-features
 
 - `badges`: a step-number badge above every visible obstacle.
 - `next-highlight`: the next obstacle is filled.
-- `spots`: a dot on each obstacle at its median learned click position, and a ring on the next one.
+- `spots`: a dot at each step's median learned screen spot; only the next two unless "Outline every obstacle" is on.
+- `next-spot`: a ring and step number on the next spot, and a dashed line to the spot after it.
 
 ## How to get to it (user POV)
 
@@ -14,11 +15,11 @@ Obstacles get numbered badges. The next obstacle is filled amber, and the others
 
 ## Driving it with lens.sh
 
-- **Replay:** run `lens.sh replay` on any fixture with a completed lap. Frames after the first learned lap show dots inside the obstacle boxes.
-- **Live:** ask the human for one lap, then a screenshot mid-lap. The dots must sit on the obstacles, not at fixed screen points.
-- **Proof:** a replay frame, plus a live screenshot with the dots on the obstacles.
+- **Replay:** run `lens.sh replay` on any fixture with a completed lap. Frames after the first learned lap show the ringed next spot and the dashed line.
+- **Live:** ask the human for one lap, then a screenshot mid-lap. The spots must stay fixed on screen while the character moves, and the next obstacle should arrive under the ring by the time the human clicks.
+- **Proof:** a replay frame, plus a live screenshot mid-animation with the ring where the next click lands.
 
 ## Gotchas
 
-- Views learned before 1.0.0's switch to clickbox-relative spots have no spot data until they get a new lap.
+- The spot is where the human clicked, so it sits on the obstacle only at click time; while the character runs it can sit on empty ground. That's intended.
 - Red boxes come from other plugins, such as TicTac7x Rooftops, not from Rooftop Lens.

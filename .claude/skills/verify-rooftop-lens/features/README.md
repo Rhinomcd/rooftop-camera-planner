@@ -11,7 +11,7 @@ The maintained recipes for proving Rooftop Lens behavior. Read [../SKILL.md](../
 
 - [lap-tracking.md](lap-tracking.md): laps start, advance, complete, and drop.
 - [calibrator-card.md](calibrator-card.md): the HUD card's viewfinder, status text, and stats.
-- [click-spots.md](click-spots.md): obstacle badges and learned click spots on live clickboxes.
+- [click-spots.md](click-spots.md): obstacle badges and learned click spots fixed on screen.
 - [view-scoring.md](view-scoring.md): views are saved, scored, and suggested.
 
 ## Feature entry contract
