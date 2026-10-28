@@ -7,7 +7,8 @@ A view is a snapped yaw and pitch. Each saved view keeps the last 8 clicks per o
 - `persist`: views are saved to `rooftopLens.views.<COURSE>` and reload after a restart.
 - `score`: "This view" and "Best" show the route in pixels at the current scale.
 - `suggest`: untried quarter turns come first, then the refinements around the best, then the best view.
-- `calibrated`: with no untried view left, the card says "Calibrated" on the best view and "Back to best view" off it.
+- `confirm`: with no untried view left, the card says "Confirm best view" until the best view has 3 laps.
+- `calibrated`: then it says "Calibrated" on the best view and "Back to best view" off it.
 
 ## How to get to it (user POV)
 

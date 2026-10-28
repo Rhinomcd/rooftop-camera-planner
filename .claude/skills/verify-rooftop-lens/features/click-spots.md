@@ -1,13 +1,13 @@
 # Click spots
 
-Obstacles get numbered badges. The next obstacle is filled amber, and the others are outlined. In a view with learned laps, the screen shows where the player usually clicks each step: fixed screen spots in Lens units (viewport-center offset over `client.getScale()`), not attached to the obstacle, so the mouse can wait there during the obstacle animation. The next spot gets a ring and step number, with a dashed line to the one after.
+Obstacles get numbered badges. The next obstacle is filled amber, and the others are outlined. In a view with learned laps, the screen shows where the player usually clicks each step: fixed screen spots in Lens units (viewport-center offset over `client.getScale()`), not attached to the obstacle, so the mouse can wait there during the obstacle animation. The next spot gets a ring in the next obstacle's color, with a dashed line to the one after.
 
 ## Sub-features
 
 - `badges`: a step-number badge above every visible obstacle.
 - `next-highlight`: the next obstacle is filled.
 - `spots`: a dot at each step's median learned screen spot; only the next two unless "Outline every obstacle" is on.
-- `next-spot`: a ring and step number on the next spot, and a dashed line to the spot after it.
+- `next-spot`: a ring on the next spot, and a dashed line to the spot after it.
 
 ## How to get to it (user POV)
 
